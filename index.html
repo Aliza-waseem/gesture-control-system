@@ -1412,22 +1412,62 @@
         }
         // ==================== CAMERA ====================
         function startCamera() {
-            videoElement = document.getElementById('moduleVideo');
-            canvasElement = document.getElementById('moduleCanvas');
-            canvasCtx = canvasElement.getContext('2d');
-            hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}` });
-            hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.5 });
-            hands.onResults(onHandResults);
-            camera = new Camera(videoElement, {
-                onFrame: async () => { if (isModuleActive && hands) await hands.send({ image: videoElement }); },
-                width: 640, height: 480
-            });
-            camera.start().then(() => {
-                document.getElementById('cameraStatus').classList.add('active');
-                document.getElementById('modelStatus').classList.add('active');
-                document.getElementById('gestureStatus').classList.add('active');
-                canvasElement.width = 640; canvasElement.height = 480;
-            });
+            try {
+                videoElement = document.getElementById('moduleVideo');
+                canvasElement = document.getElementById('moduleCanvas');
+                canvasCtx = canvasElement.getContext('2d');
+
+                console.log('Initializing MediaPipe Hands...');
+                hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}` });
+
+                // Lower detection confidence for better hand detection in varied lighting conditions
+                hands.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.5,  // Lowered from 0.7 to 0.5
+                    minTrackingConfidence: 0.5
+                });
+                hands.onResults(onHandResults);
+                console.log('MediaPipe Hands initialized successfully');
+
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        if (isModuleActive && hands) {
+                            try {
+                                await hands.send({ image: videoElement });
+                            } catch (err) {
+                                console.error('Error sending frame to hand detection:', err);
+                            }
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+
+                console.log('Starting camera...');
+                camera.start()
+                    .then(() => {
+                        console.log('Camera started successfully');
+                        document.getElementById('cameraStatus').classList.add('active');
+                        document.getElementById('modelStatus').classList.add('active');
+                        document.getElementById('gestureStatus').classList.add('active');
+                        canvasElement.width = 640;
+                        canvasElement.height = 480;
+                        showToast('✅', 'Camera and hand detection ready');
+                    })
+                    .catch((error) => {
+                        console.error('Camera start failed:', error);
+                        showToast('❌', 'Camera access denied or failed. Please allow camera permissions and refresh.');
+                        // Show error to user
+                        const hi = document.getElementById('handInfo');
+                        if (hi) hi.textContent = '❌ Camera access denied. Please allow camera permissions.';
+                    });
+            } catch (error) {
+                console.error('Error initializing camera or hand detection:', error);
+                showToast('❌', 'Failed to initialize hand detection. Please refresh the page.');
+                const hi = document.getElementById('handInfo');
+                if (hi) hi.textContent = '❌ Failed to initialize hand detection';
+            }
         }
         function stopCamera() {
             if (camera) { camera.stop(); camera = null; }
@@ -1436,11 +1476,19 @@
             document.getElementById('gestureStatus').classList.remove('active');
         }
         // ==================== HAND RESULTS ====================
+        let lastHandDetectionLog = 0;
         function onHandResults(results) {
             if (!isModuleActive || !canvasCtx) return;
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                // Log hand detection periodically for debugging (every 3 seconds)
+                const now = Date.now();
+                if (now - lastHandDetectionLog > 3000) {
+                    console.log(`Hand detection active: ${results.multiHandLandmarks.length} hand(s) detected`);
+                    lastHandDetectionLog = now;
+                }
+
                 for (const lm of results.multiHandLandmarks) {
                     drawConnectors(canvasCtx, lm, HAND_CONNECTIONS, { color: 'rgba(0,210,255,0.4)', lineWidth: 2 });
                     drawLandmarks(canvasCtx, lm, { color: '#e94560', lineWidth: 1, radius: 3 });
