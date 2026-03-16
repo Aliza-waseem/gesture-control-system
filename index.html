@@ -1,0 +1,2433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Control System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+        * {
+            margin: 0; padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --bg-primary: #0a0a0f; --bg-secondary: #12121a;
+            --bg-card: #1a1a2e; --accent-1: #e94560;
+            --accent-3: #533483; --accent-4: #00d2ff;
+            --accent-5: #7928ca; --accent-6: #a855f7;
+            --text-primary: #ffffff; --text-secondary: #a0a0b8;
+            --glow-1: rgba(233, 69, 96, 0.4); --glow-2: rgba(0, 210, 255, 0.4);
+            --glow-3: rgba(121, 40, 202, 0.4); --glow-4: rgba(255, 154, 0, 0.4);
+            --glow-5: rgba(0, 255, 136, 0.4); --glow-6: rgba(168, 85, 247, 0.4);
+            --border-color: rgba(255, 255, 255, 0.06);
+        }
+        body {
+            font-family: 'Poppins', sans-serif; background: var(--bg-primary);
+            color: var(--text-primary); min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .bg-animation {
+            position: fixed; top: 0;
+            left: 0; width: 100%;
+            height: 100%; z-index: 0;
+            overflow: hidden; pointer-events: none;
+        }
+        .bg-animation .orb {
+            position: absolute; border-radius: 50%;
+            filter: blur(80px); opacity: 0.15;
+            animation: floatOrb 20s ease-in-out infinite;
+        }
+        .bg-animation .orb:nth-child(1) {
+            width: 500px; height: 500px;
+            background: var(--accent-1); top: -100px;
+            left: -100px;
+        }
+        .bg-animation .orb:nth-child(2) {
+            width: 400px; height: 400px;
+            background: var(--accent-4); bottom: -100px;
+            right: -100px; animation-delay: -5s;
+        }
+        .bg-animation .orb:nth-child(3) {
+            width: 300px; height: 300px;
+            background: var(--accent-5); top: 50%;
+            left: 50%; transform: translate(-50%, -50%);
+            animation-delay: -10s;
+        }
+        @keyframes floatOrb {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+        }
+            25% {
+                transform: translate(80px, -80px) scale(1.1);
+        }
+            50% {
+                transform: translate(-60px, 60px) scale(0.9);
+        }
+            75% {
+                transform: translate(40px, 40px) scale(1.05);
+            }
+        }
+        .particles {
+            position: fixed; top: 0;
+            left: 0; width: 100%;
+            height: 100%; z-index: 0;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute; width: 3px;
+            height: 3px; background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%; animation: particleFloat linear infinite;
+        }
+        @keyframes particleFloat { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% {
+                opacity: 1;
+        }
+            90% {
+                opacity: 1;
+        }
+            100% {
+                transform: translateY(-100px) rotate(720deg); opacity: 0;
+            }
+        }
+        /* ===== HITMS LOGO — fixed top-left corner ===== */
+        .hitms-corner-logo {
+            position: fixed; top: 20px;
+            left: 20px; z-index: 100;
+            width: 90px; height: 90px;
+            border-radius: 50%; object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 25px rgba(0, 210, 255, 0.25), 0 4px 15px rgba(0, 0, 0, 0.4);
+            background: var(--bg-card); transition: transform 0.3s, box-shadow 0.3s;
+            pointer-events: none;
+        }
+        .hitms-corner-logo:hover { transform: scale(1.1); box-shadow: 0 0 35px rgba(0, 210, 255, 0.4), 0 6px 20px rgba(0, 0, 0, 0.5); }
+        /* ===== CREATED BY BADGE — fixed top-right corner ===== */
+        .created-badge {
+            position: fixed; top: 20px;
+            right: 20px; z-index: 100;
+            padding: 12px 24px; border-radius: 12px;
+            background: rgba(26, 26, 46, 0.7); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08); pointer-events: none;
+            user-select: none;
+        }
+        .created-badge span {
+            font-size: 1.1rem; font-weight: 700;
+            letter-spacing: 0.5px;
+            background-image: linear-gradient(135deg, #e94560, #00d2ff);
+            -webkit-background-clip: text; background-clip: text;
+            color: transparent;
+        }
+        .header { position: relative; z-index: 10; text-align: center; padding: 40px 20px 20px; }
+        .header .logo-icon { font-size: 48px; margin-bottom: 10px; display: inline-block; animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+        }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        .header h1 {
+            font-size: 2.8rem; font-weight: 800;
+            background: linear-gradient(135deg, #e94560, #00d2ff, #7928ca);
+            background-size: 200% 200%; -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent; animation: gradientShift 4s ease infinite;
+            margin-bottom: 8px; letter-spacing: -1px;
+        }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; }
+            50% {
+                background-position: 100% 50%;
+        }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        .header p {
+            color: var(--text-secondary); font-size: 1.05rem;
+            font-weight: 300; max-width: 600px;
+            margin: 0 auto;
+        }
+        .status-bar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: center;
+            gap: 30px; padding: 15px 20px;
+            flex-wrap: wrap;
+        }
+        .status-item {
+            display: flex; align-items: center;
+            gap: 8px; font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%; background: #444;
+            transition: background 0.3s;
+        }
+        .status-dot.active { background: #00ff88; box-shadow: 0 0 10px rgba(0, 255, 136, 0.5); animation: statusPulse 2s ease-in-out infinite; }
+        @keyframes statusPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+        }
+            50% {
+                box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+            }
+        }
+        .dashboard {
+            position: relative; z-index: 10;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px; padding: 30px 40px 50px;
+            max-width: 1400px; margin: 0 auto;
+        }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 20px; padding: 30px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden;
+        }
+        .card::before {
+            content: ''; position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.02) 100%);
+            pointer-events: none;
+        }
+        .card::after {
+            content: ''; position: absolute;
+            top: -2px; left: -2px;
+            right: -2px; bottom: -2px;
+            border-radius: 22px; z-index: -1;
+            opacity: 0; transition: opacity 0.4s;
+        }
+        .card:hover { transform: translateY(-8px) scale(1.02); border-color: transparent; }
+        .card:hover::after { opacity: 1; }
+        .card:nth-child(1)::after { background: linear-gradient(135deg, var(--accent-1), var(--accent-3)); }
+        .card:nth-child(2)::after { background: linear-gradient(135deg, var(--accent-4), #0066ff); }
+        .card:nth-child(3)::after { background: linear-gradient(135deg, var(--accent-5), #ff6b9d); }
+        .card:nth-child(4)::after { background: linear-gradient(135deg, #ff9a00, #ff5500); }
+        .card:nth-child(5)::after { background: linear-gradient(135deg, #00ff88, #00b4d8); }
+        .card:nth-child(6)::after { background: linear-gradient(135deg, #a855f7, #f59e0b); }
+        .card:nth-child(7)::after { background: linear-gradient(135deg, #ff3366, #ba0033); }
+        .card:nth-child(8)::after { background: linear-gradient(135deg, #b829ea, #ffd700); }
+        .card:nth-child(1):hover { box-shadow: 0 20px 60px var(--glow-1); }
+        .card:nth-child(2):hover { box-shadow: 0 20px 60px var(--glow-2); }
+        .card:nth-child(3):hover { box-shadow: 0 20px 60px var(--glow-3); }
+        .card:nth-child(4):hover { box-shadow: 0 20px 60px var(--glow-4); }
+        .card:nth-child(5):hover { box-shadow: 0 20px 60px var(--glow-5); }
+        .card:nth-child(6):hover { box-shadow: 0 20px 60px var(--glow-6); }
+        .card:nth-child(7):hover { box-shadow: 0 20px 60px rgba(255, 51, 102, 0.4); }
+        .card:nth-child(8):hover { box-shadow: 0 20px 60px rgba(184, 41, 234, 0.4); }
+        .card-icon {
+            width: 64px; height: 64px;
+            border-radius: 16px; display: flex;
+            align-items: center; justify-content: center;
+            font-size: 28px; margin-bottom: 20px;
+        }
+        .card:nth-child(1) .card-icon { background: linear-gradient(135deg, rgba(233, 69, 96, 0.2), rgba(83, 52, 131, 0.2)); }
+        .card:nth-child(2) .card-icon { background: linear-gradient(135deg, rgba(0, 210, 255, 0.2), rgba(0, 102, 255, 0.2)); }
+        .card:nth-child(3) .card-icon { background: linear-gradient(135deg, rgba(121, 40, 202, 0.2), rgba(255, 107, 157, 0.2)); }
+        .card:nth-child(4) .card-icon { background: linear-gradient(135deg, rgba(255, 154, 0, 0.2), rgba(255, 85, 0, 0.2)); }
+        .card:nth-child(5) .card-icon { background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 180, 216, 0.2)); }
+        .card:nth-child(6) .card-icon { background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(245, 158, 11, 0.2)); }
+        .card:nth-child(7) .card-icon { background: linear-gradient(135deg, rgba(255, 51, 102, 0.2), rgba(186, 0, 51, 0.2)); }
+        .card:nth-child(8) .card-icon { background: linear-gradient(135deg, rgba(184, 41, 234, 0.2), rgba(255, 215, 0, 0.2)); }
+        .card-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+        .card-desc { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px; }
+        .card-gestures { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+        .gesture-tag {
+            background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 0.75rem; color: var(--text-secondary);
+        }
+        .card-btn {
+            display: inline-flex; align-items: center;
+            gap: 8px; padding: 10px 24px;
+            border: none; border-radius: 12px;
+            font-family: 'Poppins', sans-serif; font-size: 0.9rem;
+            font-weight: 600; color: #fff;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .card:nth-child(1) .card-btn { background: linear-gradient(135deg, #e94560, #533483); }
+        .card:nth-child(2) .card-btn { background: linear-gradient(135deg, #00d2ff, #0066ff); }
+        .card:nth-child(3) .card-btn { background: linear-gradient(135deg, #7928ca, #ff6b9d); }
+        .card:nth-child(4) .card-btn { background: linear-gradient(135deg, #ff9a00, #ff5500); }
+        .card:nth-child(5) .card-btn { background: linear-gradient(135deg, #00ff88, #00b4d8); }
+        .card:nth-child(6) .card-btn { background: linear-gradient(135deg, #a855f7, #f59e0b); }
+        .card:nth-child(7) .card-btn { background: linear-gradient(135deg, #ff3366, #ba0033); }
+        .card:nth-child(8) .card-btn { background: linear-gradient(135deg, #b829ea, #ffd700); color: #111; }
+        .card-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); }
+        /* ===== MODAL CREDIT BADGE ===== */
+        .modal-credit {
+            display: flex; align-items: center;
+            gap: 10px; justify-content: center;
+            padding: 14px 0 4px; font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5); border-top: 1px solid var(--border-color);
+            margin-top: 20px; font-weight: 500;
+        }
+        .modal-credit img {
+            width: 28px; height: 28px;
+            border-radius: 50%; object-fit: cover;
+            opacity: 0.7; border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-overlay {
+            position: fixed; top: 0;
+            left: 0; width: 100%;
+            height: 100%; background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px); z-index: 1000;
+            display: none; align-items: center;
+            justify-content: center; animation: fadeIn 0.3s;
+        }
+        .modal-overlay.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 24px; width: 95%;
+            max-width: 1200px; max-height: 90vh;
+            overflow-y: auto; padding: 30px;
+            position: relative;
+            animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; }
+            to {
+                transform: translateY(0); opacity: 1;
+            }
+        }
+        .modal-close {
+            position: absolute; top: 20px;
+            right: 20px; width: 40px;
+            height: 40px; border-radius: 12px;
+            border: 1px solid var(--border-color); background: var(--bg-card);
+            color: var(--text-primary); font-size: 20px;
+            cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: all 0.3s; z-index: 10;
+        }
+        .modal-close:hover { background: var(--accent-1); border-color: var(--accent-1); }
+        .modal-header {
+            display: flex; align-items: center;
+            gap: 16px; margin-bottom: 24px;
+            padding-right: 50px;
+        }
+        .modal-header .icon { font-size: 36px; }
+        .modal-header h2 { font-size: 1.6rem; font-weight: 700; }
+        .modal-header p { color: var(--text-secondary); font-size: 0.9rem; }
+        .modal-content { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .camera-container {
+            position: relative; border-radius: 16px;
+            overflow: hidden; background: #000;
+            aspect-ratio: 4/3;
+        }
+        .camera-container video,
+        .camera-container canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .camera-container canvas { position: absolute; top: 0; left: 0; }
+        .camera-label {
+            position: absolute; top: 12px;
+            left: 12px; background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px); padding: 6px 14px;
+            border-radius: 8px; font-size: 0.75rem;
+            color: #fff; display: flex;
+            align-items: center; gap: 6px;
+            z-index: 5;
+        }
+        .camera-label .rec-dot {
+            width: 8px; height: 8px;
+            background: #ff0040; border-radius: 50%;
+            animation: recBlink 1s ease-in-out infinite;
+        }
+        @keyframes recBlink {
+            0%,
+            100% {
+                opacity: 1;
+        }
+            50% {
+                opacity: 0.3;
+            }
+        }
+        .controls-section { display: flex; flex-direction: column; gap: 16px; }
+        .gesture-info-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; }
+        .gesture-info-box h3 {
+            font-size: 1rem; font-weight: 600;
+            margin-bottom: 12px; display: flex;
+            align-items: center; gap: 8px;
+        }
+        .gesture-list { list-style: none; }
+        .gesture-list li {
+            display: flex; align-items: center;
+            gap: 12px; padding: 10px 0;
+            border-bottom: 1px solid var(--border-color); font-size: 0.88rem;
+        }
+        .gesture-list li:last-child { border-bottom: none; }
+        .gesture-list .gesture-emoji { font-size: 1.4rem; width: 36px; text-align: center; }
+        .gesture-list .gesture-name { font-weight: 600; min-width: 100px; }
+        .gesture-list .gesture-action { color: var(--text-secondary); }
+        .output-box {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 20px;
+            flex: 1;
+        }
+        .output-box h3 {
+            font-size: 1rem; font-weight: 600;
+            margin-bottom: 12px; display: flex;
+            align-items: center; gap: 8px;
+        }
+        .output-display {
+            min-height: 100px; display: flex;
+            align-items: center; justify-content: center;
+            flex-direction: column; font-size: 1.1rem;
+            color: var(--text-secondary); text-align: center;
+        }
+        .volume-bar-container {
+            width: 100%; height: 24px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+            overflow: hidden; margin-top: 10px;
+        }
+        .volume-bar {
+            height: 100%; width: 50%;
+            background: linear-gradient(90deg, #00d2ff, #7928ca); border-radius: 12px;
+            transition: width 0.3s;
+        }
+        .color-canvas-container {
+            width: 100%; aspect-ratio: 4/3;
+            background: #111; border-radius: 12px;
+            overflow: hidden; margin-top: 10px;
+        }
+        .color-canvas-container canvas { width: 100%; height: 100%; }
+        .nav-indicator { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        .nav-dot {
+            width: 40px; height: 40px;
+            border-radius: 10px; background: var(--bg-card);
+            border: 1px solid var(--border-color); display: flex;
+            align-items: center; justify-content: center;
+            font-size: 1.2rem; transition: all 0.3s;
+        }
+        .nav-dot.active { background: var(--accent-4); border-color: var(--accent-4); transform: scale(1.15); }
+        .brightness-display {
+            width: 120px; height: 120px;
+            border-radius: 50%; background: conic-gradient(#ff9a00, #ff5500, #ff9a00);
+            display: flex; align-items: center;
+            justify-content: center; margin: 10px auto;
+        }
+        .brightness-display .inner {
+            width: 100px; height: 100px;
+            border-radius: 50%; background: var(--bg-card);
+            display: flex; align-items: center;
+            justify-content: center; flex-direction: column;
+        }
+        .brightness-display .value { font-size: 2rem; font-weight: 800; }
+        .brightness-display .label { font-size: 0.7rem; color: var(--text-secondary); }
+        .zoom-display { text-align: center; margin-top: 10px; }
+        .zoom-value {
+            font-size: 3rem; font-weight: 800;
+            background: linear-gradient(135deg, #00ff88, #00b4d8); -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .toast {
+            position: fixed; bottom: 30px;
+            left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 14px 28px; border-radius: 16px;
+            font-size: 0.9rem; z-index: 2000;
+            display: flex; align-items: center;
+            gap: 10px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .hand-landmark-info { font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 8px; }
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.15); border-radius: 16px;
+            padding: 30px; text-align: center;
+            cursor: pointer; transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+        .upload-area:hover { border-color: var(--accent-4); background: rgba(0, 210, 255, 0.05); }
+        .upload-area input { display: none; }
+        .upload-area .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .upload-area .upload-text { font-size: 0.9rem; color: var(--text-secondary); }
+        .upload-area .upload-text strong { color: var(--accent-4); }
+        .slide-display {
+            width: 100%; aspect-ratio: 16/9;
+            background: #111; border-radius: 12px;
+            overflow: hidden; display: flex;
+            align-items: center; justify-content: center;
+            margin-bottom: 12px; position: relative;
+        }
+        .slide-display img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .slide-counter { font-size: 0.85rem; color: var(--text-secondary); text-align: center; margin-bottom: 8px; }
+        .zoom-image-container {
+            width: 100%; aspect-ratio: 4/3;
+            background: #111; border-radius: 12px;
+            overflow: hidden; display: flex;
+            align-items: center; justify-content: center;
+            position: relative;
+        }
+        .zoom-image-container img { transition: transform 0.3s; max-width: 100%; max-height: 100%; }
+        .action-btn {
+            display: inline-flex; align-items: center;
+            gap: 6px; padding: 8px 18px;
+            border: 1px solid var(--border-color); border-radius: 10px;
+            background: var(--bg-card); color: var(--text-primary);
+            font-family: 'Poppins', sans-serif; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.3s;
+            margin: 4px;
+        }
+        .action-btn:hover { background: var(--accent-4); border-color: var(--accent-4); color: #000; }
+        .audio-player-mini { width: 100%; margin-top: 12px; }
+        .audio-player-mini audio { width: 100%; height: 36px; border-radius: 8px; }
+        @media(max-width:768px) { .header h1 { font-size: 1.8rem; }
+        .dashboard { padding: 20px; gap: 16px; }
+        .modal-content { grid-template-columns: 1fr; }
+        .modal { padding: 20px; }
+        .hitms-corner-logo { width: 60px; height: 60px; top: 12px; left: 12px; }
+        .created-badge { top: 12px; right: 12px; padding: 8px 14px; }
+        .created-badge span { font-size: 0.85rem; }
+        }
+        /* ===== 3D MUSICAL STUDIO UI POLISH ===== */
+        .global-cmds-card {
+            background: linear-gradient(180deg, rgba(10, 30, 50, 0.6), rgba(5, 15, 30, 0.8));
+            border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 12px;
+            padding: 12px; margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.15);
+        }
+        .global-cmds-title {
+            color: #00d2ff; font-size: 0.75rem;
+            font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 10px;
+        }
+        .global-cmd-tags { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .global-cmd-tag {
+            background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.4);
+            color: #00d2ff; padding: 6px 14px;
+            border-radius: 8px; font-size: 0.75rem;
+            font-weight: 600; display: flex;
+            align-items: center; gap: 6px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .global-cmd-tag:hover { background: rgba(0, 210, 255, 0.25); transform: translateY(-1px); }
+        .ctrl-pad-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 16px;
+            margin-top: 20px; position: relative;
+            overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .ctrl-pad-title {
+            color: var(--text-primary); font-size: 0.85rem;
+            font-weight: 600; margin-bottom: 14px;
+            display: flex; align-items: center;
+            gap: 8px; justify-content: center;
+        }
+        .ctrl-pad-title::before,
+        .ctrl-pad-title::after {
+            content: ''; height: 1px;
+            flex: 1;
+            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+        }
+        .ctrl-pad-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .ctrl-pad-item {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; padding: 12px 6px;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 6px;
+            transition: all 0.2s;
+        }
+        .ctrl-pad-item:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.2); }
+        .ctrl-pad-icon { font-size: 1.8rem; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4)); }
+        .ctrl-pad-name {
+            font-size: 0.75rem; font-weight: 700;
+            color: var(--text-primary); text-transform: uppercase;
+            letter-spacing: 0.5px; text-align: center;
+        }
+        .ctrl-pad-desc { font-size: 0.65rem; color: var(--text-secondary); text-align: center; line-height: 1.2; }
+        .music-visualizer-overlay {
+            position: absolute; bottom: 0;
+            left: 0; right: 0;
+            height: 60px; display: flex;
+            align-items: flex-end; justify-content: center;
+            gap: 4px; z-index: 2;
+            padding-bottom: 12px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+            pointer-events: none;
+        }
+        .music3d-stage {
+            position: relative; width: 100%;
+            aspect-ratio: 16/10; border-radius: 16px;
+            overflow: hidden; background: #030308;
+            border: 1px solid var(--border-color); margin-bottom: 24px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        }
+        .music3d-canvas { width: 100% !important; height: 100% !important; display: block; }
+        .music3d-trail { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+        .music3d-holo {
+            position: absolute; inset: 0;
+            pointer-events: none; z-index: 1;
+            background: linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.03) 50%, transparent 100%);
+            background-size: 100% 20px; animation: holoScroll 6s linear infinite;
+            opacity: 0.4;
+        }
+        @keyframes holoScroll { 0% { background-position: 0 0; }
+            100% {
+                background-position: 0 60px;
+            }
+        }
+        .music3d-label {
+            position: absolute; bottom: 8px;
+            left: 0; right: 0;
+            text-align: center; z-index: 3;
+            font-size: 1rem; font-weight: 700;
+            letter-spacing: 1px; text-shadow: 0 0 12px currentColor;
+            transition: all 0.5s;
+        }
+        .music3d-snap { animation: m3dSnap 0.6s cubic-bezier(0.2, 1.5, 0.5, 1) forwards; }
+        @keyframes m3dSnap { 0% { transform: scale(0.85); opacity: 0.3; }
+            50% {
+                transform: scale(1.06); opacity: 1;
+        }
+            100% {
+                transform: scale(1); opacity: 1;
+            }
+        }
+        .inst-selector {
+            display: flex; flex-wrap: wrap;
+            gap: 6px; justify-content: center;
+            margin: 10px 0;
+        }
+        .inst-chip {
+            padding: 6px 14px; border-radius: 20px;
+            border: 1px solid var(--border-color); background: var(--bg-card);
+            color: var(--text-secondary); font-family: 'Poppins', sans-serif;
+            font-size: 0.72rem; cursor: pointer;
+            transition: all 0.3s; font-weight: 500;
+        }
+        .inst-chip:hover { border-color: var(--accent-6); color: var(--text-primary); transform: translateY(-1px); }
+        .inst-chip.active {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(245, 158, 11, 0.2));
+            border-color: var(--accent-6); color: #fff;
+            font-weight: 600; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2);
+        }
+        .piano-keyboard {
+            position: absolute; bottom: 0;
+            left: 50%; transform: translateX(-50%);
+            display: flex; align-items: flex-end;
+            justify-content: center; gap: 2px;
+            padding: 12px 16px;
+            background: linear-gradient(180deg, rgba(10, 10, 20, 0.6), rgba(5, 5, 15, 0.8));
+            border-radius: 16px 16px 0 0; border: 1px solid rgba(168, 85, 247, 0.3);
+            border-bottom: none; z-index: 4;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        }
+        .piano-keyboard::before {
+            content: ''; position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.8), transparent);
+        }
+        .piano-key {
+            width: 32px; height: 90px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(200, 200, 200, 0.95));
+            border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 0 0 6px 6px;
+            cursor: pointer; transition: all 0.15s ease;
+            position: relative; display: flex;
+            align-items: flex-end; justify-content: center;
+            padding-bottom: 8px; font-size: 0.6rem;
+            color: #444; font-weight: 700;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5), 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .piano-key:hover { background: linear-gradient(180deg, #fff, #e8e8ff); box-shadow: inset 0 0 15px #fff, 0 4px 15px rgba(168, 85, 247, 0.2); }
+        .piano-key.active {
+            background: linear-gradient(180deg, #c084fc, #a855f7) !important;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 40px rgba(168, 85, 247, 0.4), inset 0 -4px 8px rgba(0, 0, 0, 0.3);
+            transform: scaleY(0.97); border-color: rgba(168, 85, 247, 0.5);
+            color: #fff;
+        }
+        .piano-key.black {
+            width: 22px; height: 55px;
+            background: linear-gradient(180deg, #333, #111); border-color: rgba(255, 255, 255, 0.1);
+            margin: 0 -11px; z-index: 2;
+            color: transparent; border-radius: 0 0 4px 4px;
+            box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.1), 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .piano-key.black:hover { background: linear-gradient(180deg, #444, #222); }
+        .piano-key.black.active {
+            background: linear-gradient(180deg, #f59e0b, #d97706) !important;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.4);
+            color: transparent; transform: scaleY(0.97);
+        }
+        .drum-pad-grid {
+            position: absolute; bottom: 0;
+            left: 0; right: 0;
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1px; z-index: 4;
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px); border-top: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .drum-pad {
+            padding: 20px 10px; text-align: center;
+            cursor: pointer; transition: all 0.15s;
+            font-weight: 700; font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7); border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .drum-pad:last-child { border-right: none; }
+        .drum-pad.kick { background: linear-gradient(0deg, rgba(239, 68, 68, 0.2), transparent); }
+        .drum-pad.snare { background: linear-gradient(0deg, rgba(245, 158, 11, 0.2), transparent); }
+        .drum-pad.hihat { background: linear-gradient(0deg, rgba(168, 85, 247, 0.2), transparent); }
+        .drum-pad.clap { background: linear-gradient(0deg, rgba(236, 72, 153, 0.2), transparent); }
+        .drum-pad.hit { color: #fff; text-shadow: 0 0 10px currentColor; box-shadow: inset 0 -15px 30px currentColor; transform: scale(0.98); }
+        .bass-strings {
+            position: absolute; bottom: 0;
+            left: 0; right: 0;
+            display: flex; flex-direction: column;
+            gap: 10px; padding: 30px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.8), transparent);
+            z-index: 4; pointer-events: none;
+        }
+        .bass-string {
+            height: 3px; border-radius: 2px;
+            transition: all 0.15s; opacity: 0.3;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+        }
+        .bass-string:nth-child(1) { background: linear-gradient(90deg, transparent, #00d2ff, transparent); height: 5px; }
+        .bass-string:nth-child(2) { background: linear-gradient(90deg, transparent, #00b4d8, transparent); height: 4px; }
+        .bass-string:nth-child(3) { background: linear-gradient(90deg, transparent, #0090aa, transparent); }
+        .bass-string:nth-child(4) { background: linear-gradient(90deg, transparent, #007088, transparent); height: 2px; }
+        .bass-string.plucked {
+            opacity: 1; transform: scaleY(3);
+            filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.8));
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+        }
+        .bass-pick {
+            position: absolute; width: 18px;
+            height: 18px; background: #fff;
+            border-radius: 50%; box-shadow: 0 0 20px #00d2ff, inset 0 0 10px #00d2ff;
+            transition: all 0.1s; pointer-events: none;
+            z-index: 5;
+        }
+        .synth-panel {
+            position: absolute; bottom: 0;
+            left: 0; right: 0;
+            padding: 16px;
+            background: linear-gradient(0deg, rgba(5, 15, 10, 0.9), transparent);
+            z-index: 4; backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px); border-top: 1px solid rgba(74, 222, 128, 0.2);
+        }
+        .synth-knob-row { display: flex; gap: 30px; justify-content: center; margin: 0; }
+        .synth-knob {
+            text-align: center; background: rgba(0, 0, 0, 0.3);
+            padding: 10px; border-radius: 12px;
+            border: 1px solid rgba(74, 222, 128, 0.1); min-width: 80px;
+        }
+        .synth-knob-dial {
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            background: conic-gradient(from 220deg, #4ade80, #22d3ee, #4ade80);
+            border: 2px solid rgba(255, 255, 255, 0.2); display: flex;
+            align-items: center; justify-content: center;
+            margin: 0 auto 8px; position: relative;
+            transition: all 0.2s; box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+        }
+        .synth-knob-dial::after {
+            content: ''; position: absolute;
+            width: 4px; height: 16px;
+            background: #fff; border-radius: 2px;
+            top: 4px; transform-origin: bottom center;
+            transition: transform 0.2s; box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        .synth-knob-label {
+            font-size: 0.6rem; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-top: 4px;
+        }
+        .synth-knob-val { font-size: 0.85rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px #4ade80; }
+        .music-visualizer-overlay {
+            position: absolute; bottom: 110px;
+            left: 0; right: 0;
+            height: 80px; display: flex;
+            align-items: flex-end; justify-content: center;
+            gap: 4px; z-index: 2;
+            pointer-events: none;
+        }
+        .music-status {
+            font-size: 0.8rem; color: var(--text-secondary);
+            margin-top: 8px; text-align: center;
+            min-height: 20px;
+        }
+        .music-controls-row {
+            display: flex; flex-wrap: wrap;
+            gap: 6px; justify-content: center;
+            margin-top: 12px;
+        }
+        .music-ctrl-btn {
+            display: inline-flex; align-items: center;
+            gap: 5px; padding: 6px 14px;
+            border: 1px solid var(--border-color); border-radius: 10px;
+            background: var(--bg-card); color: var(--text-primary);
+            font-family: 'Poppins', sans-serif; font-size: 0.72rem;
+            cursor: pointer; transition: all 0.25s;
+            font-weight: 500;
+        }
+        .music-ctrl-btn:hover { border-color: var(--accent-6); background: rgba(168, 85, 247, 0.12); }
+        .music-ctrl-btn.active { background: rgba(168, 85, 247, 0.25); border-color: var(--accent-6); color: #fff; }
+        .dyn-gesture-list { list-style: none; padding: 0; margin: 8px 0 0; }
+        .dyn-gesture-list li {
+            display: flex; align-items: center;
+            gap: 10px; padding: 6px 0;
+            border-bottom: 1px solid var(--border-color); font-size: 0.8rem;
+        }
+        .dyn-gesture-list li:last-child { border-bottom: none; }
+        .dyn-gesture-list .dg-emoji { font-size: 1.2rem; width: 30px; text-align: center; }
+        .dyn-gesture-list .dg-action { color: var(--text-secondary); }
+        /* ===== SPATIAL 3D DESIGNER ===== */
+        .three-container {
+            width: 100%; aspect-ratio: 4/3;
+            border-radius: 16px; overflow: hidden;
+            position: relative; background: #050510;
+            border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+        .three-container canvas { width: 100% !important; height: 100% !important; display: block; }
+        .ghost-trail-canvas {
+            position: absolute; top: 0;
+            left: 0; width: 100%;
+            height: 100%; pointer-events: none;
+            z-index: 2;
+        }
+        .spatial-status {
+            position: absolute; top: 16px;
+            left: 16px; right: 16px;
+            display: flex; gap: 12px;
+            justify-content: space-between; flex-wrap: wrap;
+            z-index: 3; pointer-events: none;
+        }
+        .spatial-stat {
+            background: linear-gradient(135deg, rgba(10, 15, 30, 0.65), rgba(5, 10, 20, 0.8));
+            border: 1px solid rgba(0, 210, 255, 0.25); border-radius: 12px;
+            padding: 8px 16px; backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px); font-size: 0.75rem;
+            color: var(--text-secondary); display: flex;
+            align-items: center; gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .spatial-stat .stat-val { color: #00d2ff; font-weight: 700; font-size: 0.9rem; text-shadow: 0 0 10px rgba(0, 210, 255, 0.6); }
+        .spatial-stat.glow-stat .stat-val { color: #ff00d4; text-shadow: 0 0 10px rgba(255, 0, 212, 0.6); }
+        .spatial-stat.scale-stat .stat-val { color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.6); }
+        .spatial-reset-btn {
+            position: absolute; bottom: 20px;
+            left: 50%; transform: translateX(-50%);
+            z-index: 4;
+            background: linear-gradient(180deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05));
+            border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 24px;
+            padding: 10px 24px; color: #fff;
+            font-family: 'Poppins', sans-serif; font-weight: 600;
+            font-size: 0.85rem; display: flex;
+            align-items: center; gap: 8px;
+            cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2), inset 0 0 10px rgba(168, 85, 247, 0.1);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+        }
+        .spatial-reset-btn:hover {
+            background: rgba(168, 85, 247, 0.25);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2);
+            transform: translateX(-50%) translateY(-2px);
+        }
+        @keyframes magneticSnap { 0% { transform: scale(1.3) translate(var(--snap-x), var(--snap-y)); }
+            40% {
+                transform: scale(0.85) translate(0, 0);
+        }
+            70% {
+                transform: scale(1.08) translate(0, 0);
+        }
+            100% {
+                transform: scale(1) translate(0, 0);
+            }
+        }
+        .three-container.snapping canvas { animation: magneticSnap 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 3px; }
+    </style>
+</head>
+
+<body>
+
+    <!-- HITMS Logo — fixed top-left -->
+    <img src="hitms-logo.jpg" alt="HITMS" class="hitms-corner-logo">
+
+    <!-- Created by badge — fixed top-right -->
+    <div class="created-badge">
+        <span>Created by Usaid Ahmed</span>
+    </div>
+
+    <div class="bg-animation">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+    <div class="particles" id="particles"></div>
+    <div class="header">
+        <div class="logo-icon">🤖</div>
+        <h1>Gesture Control System</h1>
+        <p>Control your world with hand gestures — powered by AI & your camera</p>
+    </div>
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot" id="cameraStatus"></div><span>Camera</span>
+        </div>
+        <div class="status-item">
+            <div class="status-dot" id="modelStatus"></div><span>AI Model</span>
+        </div>
+        <div class="status-item">
+            <div class="status-dot" id="gestureStatus"></div><span>Gesture Engine</span>
+        </div>
+    </div>
+    <div class="dashboard">
+        <div class="card" onclick="openModule(0)">
+            <div class="card-icon">🔊</div>
+            <div class="card-title">Volume Control</div>
+            <div class="card-desc">Play audio and control its volume with gestures. Pinch to lower, spread to raise,
+                fist to mute.</div>
+            <div class="card-gestures"><span class="gesture-tag">✌️ Spread</span><span class="gesture-tag">🤏
+                    Pinch</span><span class="gesture-tag">✊ Mute</span></div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(1)">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Presentation Navigator</div>
+            <div class="card-desc">Upload images/slides and navigate with swipe gestures. Supports JPG, PNG files as
+                slides.</div>
+            <div class="card-gestures"><span class="gesture-tag">👈 Previous</span><span class="gesture-tag">👉
+                    Next</span><span class="gesture-tag">👍 First</span><span class="gesture-tag">✊ Last</span></div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(2)">
+            <div class="card-icon">🎨</div>
+            <div class="card-title">Air Drawing Canvas</div>
+            <div class="card-desc">Draw in the air with your index finger. Change colors, clear canvas, and download
+                your art.</div>
+            <div class="card-gestures"><span class="gesture-tag">☝️ Draw</span><span class="gesture-tag">✊
+                    Stop</span><span class="gesture-tag">🖐️ Clear</span><span class="gesture-tag">✌️ Color</span></div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(3)">
+            <div class="card-icon">☀️</div>
+            <div class="card-title">Brightness Control</div>
+            <div class="card-desc">Adjust page brightness with hand position. The entire screen dims or brightens in
+                real-time.</div>
+            <div class="card-gestures"><span class="gesture-tag">🔆 Hand Up</span><span class="gesture-tag">🔅 Hand
+                    Down</span><span class="gesture-tag">✊ Reset</span></div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(4)">
+            <div class="card-icon">🔍</div>
+            <div class="card-title">Zoom Control</div>
+            <div class="card-desc">Upload an image and zoom in/out with gestures. Spread fingers to zoom in, pinch to
+                zoom out.</div>
+            <div class="card-gestures"><span class="gesture-tag">🤲 Zoom In</span><span class="gesture-tag">🤏 Zoom
+                    Out</span><span class="gesture-tag">✊ Reset</span></div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(5)">
+            <div class="card-icon">🎹</div>
+            <div class="card-title">Multi-Instrument Studio</div>
+            <div class="card-desc">4 immersive instruments with unique gestures — Piano keys, Drum pads, Bass strings &
+                Synth knobs. Each with its own visual & controls.</div>
+            <div class="card-gestures"><span class="gesture-tag">🎹 Piano</span><span class="gesture-tag">🥁
+                    Drums</span><span class="gesture-tag">🎸 Bass</span><span class="gesture-tag">🎛️ Synth</span></div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(6)">
+            <div class="card-icon">🧊</div>
+            <div class="card-title">Spatial 3D Designer</div>
+            <div class="card-desc">Manipulate a metallic glass orb in 3D space. Orbit, scale, pan & snap with spatial
+                hand gestures and neon ghost trails.</div>
+            <div class="card-gestures"><span class="gesture-tag">🖐️ Orbit</span><span class="gesture-tag">🤏
+                    Scale</span><span class="gesture-tag">✌️ Pan</span><span class="gesture-tag">✊ Snap Reset</span>
+            </div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+        <div class="card" onclick="openModule(7)">
+            <div class="card-icon">📸</div>
+            <div class="card-title">AI Camera Studio</div>
+            <div class="card-desc">Capture raw photos and record fluid real-world videos of yourself using hand gestures. Hands-free media capture.</div>
+            <div class="card-gestures">
+                <span class="gesture-tag">✌️ Snap Photo</span>
+                <span class="gesture-tag">🔴 Rec / Stop Media</span>
+            </div>
+            <button class="card-btn">Launch ▸</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalContent">
+            <button class="modal-close" onclick="closeModule()">✕</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+    <div class="toast" id="toast"><span id="toastIcon">✋</span><span id="toastText">Gesture Detected!</span></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // Particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) { const p = document.createElement('div'); p.className = 'particle'; p.style.left = Math.random() * 100 + '%'; p.style.animationDuration = (Math.random() * 15 + 10) + 's'; p.style.animationDelay = (Math.random() * 15) + 's'; p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px'; particlesContainer.appendChild(p); }
+        // ==================== GLOBALS ====================
+        const musicInstruments = [
+            {
+                id: 'piano', name: 'Piano', icon: '🎹', img: 'inst-piano.png', glowColor: 'rgba(168,85,247,0.6)',
+                type: 'PolySynth', opts: { oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.8 }, volume: -8 },
+                gestures: [{ icon: '☝️', name: 'Press Key', action: 'Index Finger X-Axis' }]
+            },
+            {
+                id: 'drums', name: 'Drum Kit', icon: '🥁', img: 'inst-drums.png', glowColor: 'rgba(239,68,68,0.6)',
+                type: 'MembraneSynth', opts: {},
+                gestures: [{ icon: '🤟', name: 'Kick Drum', action: 'Horns Sign' }, { icon: '🖖', name: 'Snare Snap', action: 'Three Fingers' }, { icon: '🤙', name: 'Hi-Hat', action: 'Pinky Only' }, { icon: '🖐️', name: 'Crash Cymbal', action: 'Open Palm' }]
+            },
+            {
+                id: 'bass', name: 'Bass Guitar', icon: '🎸', img: 'inst-bass.png', glowColor: 'rgba(0,210,255,0.6)',
+                type: 'FMSynth', opts: { harmonicity: 0.5, modulationIndex: 1.2, oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 1.5, sustain: 0.2, release: 1.2 }, modulation: { type: 'sine' }, modulationEnvelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.2 }, volume: 6 },
+                gestures: [{ icon: '✌️', name: 'Pluck Strings', action: 'Two-Finger Drag (Y)' }]
+            },
+            {
+                id: 'synth', name: 'Synth', icon: '🎛️', img: 'inst-synth.png', glowColor: 'rgba(74,222,128,0.6)',
+                type: 'MonoSynth', opts: { oscillator: { type: 'sawtooth' }, filter: { Q: 6, type: 'lowpass', rolloff: -24 }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.4, release: 0.3 }, filterEnvelope: { attack: 0.02, decay: 0.2, sustain: 0.5, release: 0.5, baseFrequency: 300, octaves: 4 }, volume: -8 },
+                gestures: [{ icon: '👌', name: 'Air Modulate', action: 'OK Sign (X/Y)' }, { icon: '🤏', name: 'Pluck Note', action: 'Pinch' }]
+            }
+        ];
+        function getMusicNotes(octave) {
+            const base = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C'];
+            return base.map((n, i) => n + (i < 12 ? octave : octave + 1));
+        }
+        const bassNotes = ['E1', 'A1', 'D2', 'G2'];
+        let currentModule = -1, camera = null, hands = null;
+        let videoElement = null, canvasElement = null, canvasCtx = null, isModuleActive = false;
+        let audioElement = null;
+        let presentationSlides = [];
+        let pdfDoc = null;
+        let zoomImageSrc = null;
+        // Credit HTML for modals
+        const modalCreditHTML = '<div class="modal-credit"><img src="hitms-logo.jpg" alt="HITMS"> Created by Usaid Ahmed</div>';
+        const moduleStates = {
+            volume: { level: 50, muted: false },
+            presentation: { currentSlide: 0, totalSlides: 0, lastSwipeTime: 0, lastX: null },
+            drawing: { isDrawing: false, points: [], color: '#00d2ff', drawCanvas: null, drawCtx: null },
+            brightness: { level: 50 },
+            zoom: { level: 100 },
+            music: { instrument: 'piano', instrumentIndex: 0, activeNote: null, lastInstrumentSwitch: 0, lastDrumTime: 0, lastFistTime: 0, lastNoteTime: 0, toneStarted: false, synths: {}, drumSynth: null, reverb: null, reverbOn: false, octave: 4, recording: false, recordedNotes: [], recordStart: 0, isPlaying: false },
+            spatial3d: { scene: null, camera3d: null, renderer: null, orb: null, animId: null, ghostCanvas: null, ghostCtx: null, rotX: 0, rotY: 0, scale: 1, panX: 0, panY: 0, lastHandX: null, lastHandY: null, lastFistTime: 0, lastPinchDist: null, glowIntensity: 1.0 },
+            camera: { isRecording: false, mediaRecorder: null, recordedChunks: [], lastSnapTime: 0, lastRecTime: 0, lastFilterTime: 0, lastPhotoSrc: null, currentFilterIndex: 0, filters: ['none', 'sepia(0.85) contrast(1.2) brightness(1.1)', 'grayscale(1) contrast(1.1)', 'invert(1) hue-rotate(180deg)', 'saturate(2.5) hue-rotate(90deg) contrast(1.4)', 'brightness(1.3) contrast(1.2) saturate(1.5)', 'hue-rotate(240deg) saturate(1.8) brightness(1.1)', 'contrast(1.8) brightness(0.85) saturate(0.2)', 'saturate(0.1) contrast(1.4) brightness(1.15)', 'hue-rotate(120deg) saturate(2) contrast(1.2)', 'blur(2px) brightness(1.1) saturate(1.3)', 'sepia(1) hue-rotate(300deg) saturate(2.5) brightness(1.1)'], filterNames: ['Normal', 'Vintage', 'Grayscale', 'Negative', 'Neon', 'Vivid', 'Cool Blue', 'Noir', 'Fade', 'Emerald', 'Soft Blur', 'Pinky'] }
+        };
+        // ==================== MODULE DEFINITIONS ====================
+        const modules = [
+            {
+                title: 'Volume Control', icon: '🔊', desc: 'Control audio volume with hand gestures',
+                gestures: [
+                    { emoji: '🤏', name: 'Pinch', action: 'Decrease volume' },
+                    { emoji: '✌️', name: 'Spread', action: 'Increase volume' },
+                    { emoji: '✊', name: 'Fist', action: 'Mute / Unmute' }
+                ],
+                outputHTML: () => `
+                    <div style="text-align:center;">
+                        <div style="font-size:3.5rem;font-weight:800;" id="volumeValue">${moduleStates.volume.muted ? '🔇 MUTED' : moduleStates.volume.level + '%'}</div>
+                        <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:6px;">Audio Volume</div>
+                        <div class="volume-bar-container"><div class="volume-bar" id="volumeBar" style="width:${moduleStates.volume.muted ? 0 : moduleStates.volume.level}%"></div></div>
+                        <div style="margin-top:16px;">
+                            <div class="upload-area" onclick="document.getElementById('audioUpload').click()">
+                                <input type="file" id="audioUpload" accept="audio/*" onchange="loadAudio(event)">
+                                <div class="upload-icon">🎵</div>
+                                <div class="upload-text"><strong>Click to upload audio</strong><br>MP3, WAV, OGG supported</div>
+                            </div>
+                            <div class="audio-player-mini"><audio id="audioPlayer" controls loop style="width:100%;"></audio></div>
+                        </div>
+                    </div>`
+            },
+            {
+                title: 'Presentation Navigator', icon: '📊', desc: 'Upload slides/PDF and navigate with gestures',
+                gestures: [
+                    { emoji: '👈', name: 'Swipe Left', action: 'Previous slide' },
+                    { emoji: '👉', name: 'Swipe Right', action: 'Next slide' },
+                    { emoji: '👍', name: 'Thumbs Up', action: 'First slide' },
+                    { emoji: '✊', name: 'Fist', action: 'Last slide' }
+                ],
+                outputHTML: () => {
+                    const s = moduleStates.presentation;
+                    if (s.totalSlides === 0) return `
+                        <div style="text-align:center;">
+                            <div class="upload-area" onclick="document.getElementById('slideUpload').click()">
+                                <input type="file" id="slideUpload" accept="image/*,.pdf" multiple onchange="loadSlides(event)">
+                                <div class="upload-icon">📁</div>
+                                <div class="upload-text"><strong>Click to upload slides</strong><br>PDF, JPG, PNG — select multiple images for multi-slide</div>
+                            </div>
+                            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">Upload a PDF or multiple images as slides</div>
+                        </div>`;
+                    return `
+                        <div style="text-align:center;">
+                            <div class="slide-display" id="slideDisplay">
+                                <img id="slideImage" src="${presentationSlides[s.currentSlide] || ''}" alt="Slide ${s.currentSlide + 1}">
+                            </div>
+                            <div class="slide-counter">Slide ${s.currentSlide + 1} of ${s.totalSlides}</div>
+                            <div class="nav-indicator">
+                                ${Array.from({ length: Math.min(s.totalSlides, 10) }, (_, i) => `<div class="nav-dot ${i === s.currentSlide ? 'active' : ''}">${i + 1}</div>`).join('')}
+                                ${s.totalSlides > 10 ? `<div class="nav-dot">...</div>` : ''}
+                            </div>
+                            <div style="margin-top:12px;">
+                                <button class="action-btn" onclick="document.getElementById('slideUpload2').click()">📁 Change Slides</button>
+                                <input type="file" id="slideUpload2" accept="image/*,.pdf" multiple onchange="loadSlides(event)" style="display:none;">
+                            </div>
+                        </div>`;
+                }
+            },
+            {
+                title: 'Air Drawing Canvas', icon: '🎨', desc: 'Draw in the air with your finger',
+                gestures: [
+                    { emoji: '☝️', name: 'Index Up', action: 'Draw' },
+                    { emoji: '✊', name: 'Fist', action: 'Stop drawing' },
+                    { emoji: '🖐️', name: 'Open Palm', action: 'Clear canvas' },
+                    { emoji: '✌️', name: 'Peace', action: 'Change color' }
+                ],
+                outputHTML: () => `
+                    <div class="color-canvas-container"><canvas id="drawingCanvas"></canvas></div>
+                    <div style="text-align:center;margin-top:8px;">
+                        <span style="font-size:0.85rem;color:var(--text-secondary);">Current color: </span>
+                        <span id="currentColor" style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${moduleStates.drawing.color};vertical-align:middle;"></span>
+                        <button class="action-btn" onclick="downloadDrawing()" style="margin-left:12px;">💾 Download</button>
+                        <button class="action-btn" onclick="clearDrawingCanvas()">🗑️ Clear</button>
+                    </div>`
+            },
+            {
+                title: 'Brightness Control', icon: '☀️', desc: 'Adjust page brightness with hand position',
+                gestures: [
+                    { emoji: '🔆', name: 'Hand Up', action: 'Increase brightness' },
+                    { emoji: '🔅', name: 'Hand Down', action: 'Decrease brightness' },
+                    { emoji: '✊', name: 'Fist', action: 'Reset to 50%' }
+                ],
+                outputHTML: () => `
+                    <div style="text-align:center;">
+                        <div class="brightness-display" id="brightnessRing">
+                            <div class="inner">
+                                <div class="value" id="brightnessValue">${moduleStates.brightness.level}%</div>
+                                <div class="label">Brightness</div>
+                            </div>
+                        </div>
+                        <div class="volume-bar-container" style="margin-top:16px;">
+                            <div class="volume-bar" id="brightnessBar" style="width:${moduleStates.brightness.level}%;background:linear-gradient(90deg,#ff9a00,#ff5500);"></div>
+                        </div>
+                        <div style="margin-top:12px;font-size:0.8rem;color:var(--text-secondary);">⚡ Real CSS brightness filter applied to the entire page</div>
+                    </div>`
+            },
+            {
+                title: 'Zoom Control', icon: '🔍', desc: 'Upload an image and zoom with gestures',
+                gestures: [
+                    { emoji: '🤲', name: 'Spread', action: 'Zoom in' },
+                    { emoji: '🤏', name: 'Pinch', action: 'Zoom out' },
+                    { emoji: '✊', name: 'Fist', action: 'Reset zoom' }
+                ],
+                outputHTML: () => {
+                    if (!zoomImageSrc) return `
+                        <div style="text-align:center;">
+                            <div class="upload-area" onclick="document.getElementById('zoomUpload').click()">
+                                <input type="file" id="zoomUpload" accept="image/*" onchange="loadZoomImage(event)">
+                                <div class="upload-icon">🖼️</div>
+                                <div class="upload-text"><strong>Click to upload an image</strong><br>JPG, PNG, GIF supported</div>
+                            </div>
+                        </div>`;
+                    return `
+                        <div style="text-align:center;">
+                            <div class="zoom-value" id="zoomValue">${moduleStates.zoom.level}%</div>
+                            <div style="font-size:0.9rem;color:var(--text-secondary);margin:4px 0 12px;">Zoom Level</div>
+                            <div class="zoom-image-container">
+                                <img id="zoomImage" src="${zoomImageSrc}" style="transform:scale(${moduleStates.zoom.level / 100});">
+                            </div>
+                            <div style="margin-top:12px;">
+                                <button class="action-btn" onclick="document.getElementById('zoomUpload2').click()">🖼️ Change Image</button>
+                                <input type="file" id="zoomUpload2" accept="image/*" onchange="loadZoomImage(event)" style="display:none;">
+                            </div>
+                        </div>`;
+                }
+            },
+            {
+                title: '3D Musical Studio', icon: '🎹', desc: 'Immersive 3D instrument studio with spatial gestures — Apple Vision Pro style',
+                gestures: [{ emoji: '👍', name: 'Thumbs Up', action: 'Switch Instrument' }, { emoji: '✊', name: 'Fist', action: 'Stop all notes' }],
+                outputHTML: () => {
+                    const ms = moduleStates.music;
+                    const inst = musicInstruments[ms.instrumentIndex];
+                    const chips = musicInstruments.map((ins, i) => `<button class="inst-chip ${i === ms.instrumentIndex ? 'active' : ''}" onclick="switchMusicInstrument(${i})">${ins.icon} ${ins.name}</button>`).join('');
+                    const vizBars = Array.from({ length: 20 }, () => `<div class="viz-bar" style="height:${Math.random() * 20 + 5}px;background:linear-gradient(180deg,${inst.glowColor.replace(/\)/, ',0.8)')},${inst.glowColor.replace(/[\d.]+\)$/, '0.2)')});"></div>`).join('');
+                    const ctrlItems = inst.gestures.map(g => `
+                        <div class="global-cmd-tag" style="border-color:${inst.glowColor};color:#fff;background:rgba(255,255,255,0.05);">
+                            <span style="font-size:1.2em;">${g.icon}</span> ${g.name} <small style="color:var(--text-secondary);margin-left:4px;">(${g.action})</small>
+                        </div>`).join('');
+                    let controlUI = '';
+                    if (inst.id === 'piano') {
+                        const o = ms.octave || 4; const base = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C'];
+                        const notes = base.map((n, i) => n + (i < 12 ? o : o + 1));
+                        controlUI = `<div class="piano-keyboard" id="pianoKeyboard">${notes.map(n => `<div class="piano-key ${n.includes('#') ? 'black' : ''}" data-note="${n}" id="pianoKey-${n.replace('#', 's')}">${n.includes('#') ? '' : n.replace(/[0-9]/g, '')}</div>`).join('')}</div>`;
+                    } else if (inst.id === 'drums') {
+                        controlUI = `<div class="drum-pad-grid"><div class="drum-pad kick" id="padKick">🥁 KICK<br><span style="font-size:0.6rem;opacity:0.6;">🤏 Velocity</span></div><div class="drum-pad snare" id="padSnare">🪘 SNARE<br><span style="font-size:0.6rem;opacity:0.6;">✊ Fist</span></div><div class="drum-pad hihat" id="padHihat">🎵 HI-HAT<br><span style="font-size:0.6rem;opacity:0.6;">☝️ Index</span></div><div class="drum-pad clap" id="padClap">💥 CRASH<br><span style="font-size:0.6rem;opacity:0.6;">🖐️ Palm</span></div></div>`;
+                    } else if (inst.id === 'bass') {
+                        controlUI = `<div class="bass-strings" id="bassStrings"><div class="bass-string" id="bStr0"></div><div class="bass-string" id="bStr1"></div><div class="bass-string" id="bStr2"></div><div class="bass-string" id="bStr3"></div><div class="bass-pick" id="bassPick" style="left:50%;top:50%;"></div></div>`;
+                    } else if (inst.id === 'synth') {
+                        controlUI = `<div class="synth-panel"><div class="synth-knob-row"><div class="synth-knob"><div class="synth-knob-dial" id="knobCutoff"></div><div class="synth-knob-val" id="valCutoff">50%</div><div class="synth-knob-label">Cutoff X</div></div><div class="synth-knob"><div class="synth-knob-dial" id="knobReso"></div><div class="synth-knob-val" id="valReso">50%</div><div class="synth-knob-label">Resonance Y</div></div><div class="synth-knob"><div class="synth-knob-dial" id="knobWave"></div><div class="synth-knob-val" id="valWave">Saw</div><div class="synth-knob-label">Waveform</div></div></div></div>`;
+                    }
+                    return `
+                        <div style="text-align:center;">
+                            <div class="global-cmds-card">
+                                <div class="global-cmds-title">✨ Active Instrument Controls</div>
+                                <div class="global-cmd-tags">${ctrlItems}</div>
+                            </div>
+                            <div class="music3d-stage" id="music3dStage">
+                                <div class="music3d-holo"></div>
+                                <canvas class="music3d-trail" id="music3dTrail"></canvas>
+                                <div class="music3d-label" style="top:16px;bottom:auto;color:${inst.glowColor};text-shadow:0 0 10px ${inst.glowColor};font-size:1.6rem;">${inst.icon} ${inst.name}</div>
+                                <div class="music-visualizer-overlay" id="musicVisualizer">${vizBars}</div>
+                                ${controlUI}
+                            </div>
+                            <div class="inst-selector" style="margin-bottom:8px;">${chips}</div>
+                            <div class="music-status" id="musicStatus" style="min-height:24px;color:var(--text-secondary);font-weight:600;text-shadow:0 0 8px rgba(255,255,255,0.1);">Ready. Use gestures in the air...</div>
+                        </div>`;
+                }
+            },
+            {
+                title: 'Spatial 3D Designer', icon: '🧊', desc: 'Direct a sci-fi diorama in deep space using spatial gestures',
+                gestures: [
+                    { emoji: '🖐️', name: 'Open Palm', action: 'Orbit / Rotate Diorama' },
+                    { emoji: '🤏', name: 'Pinch', action: 'Elastic Scale & Core Glow' },
+                    { emoji: '✌️', name: 'Two Fingers', action: 'Pan Space / Moving Stars' },
+                    { emoji: '✊', name: 'Fist', action: 'Magnetic Snap Reset' }
+                ],
+                outputHTML: () => {
+                    const s = moduleStates.spatial3d;
+                    return `
+                        <div class="three-container" id="threeContainer">
+                            <canvas class="ghost-trail-canvas" id="ghostTrailCanvas"></canvas>
+                            <div class="spatial-status">
+                                <div class="spatial-stat">🔄 Orbit <span class="stat-val" id="statRot">${Math.round(s.rotY)}°</span></div>
+                                <div class="spatial-stat scale-stat">🔍 Scale <span class="stat-val" id="statScale">${s.scale.toFixed(2)}x</span></div>
+                                <div class="spatial-stat">↔️ Drift <span class="stat-val" id="statPan">${s.panX.toFixed(1)}, ${s.panY.toFixed(1)}</span></div>
+                                <div class="spatial-stat glow-stat">🔆 Energy <span class="stat-val" id="statGlow">${Math.round(s.glowIntensity * 100)}%</span></div>
+                            </div>
+                            <button class="spatial-reset-btn" onclick="resetSpatial3D()">🌌 Reset Coordinates</button>
+                        </div>`;
+                }
+            },
+            {
+                title: 'AI Camera Studio', icon: '📸', desc: 'Photos, videos, and live Snapchat-style filters.',
+                gestures: [
+                    { emoji: '✌️', name: 'Peace Sign', action: 'Snap Photo' },
+                    { emoji: '🔴', name: 'Pinch', action: 'Toggle Video Recording' },
+                    { emoji: '🖐️', name: 'Open Palm', action: 'Cycle Live Filters' }
+                ],
+                outputHTML: () => {
+                    const c = moduleStates.camera;
+                    const filterBtns = c.filterNames.map((name, i) => {
+                        const active = i === c.currentFilterIndex;
+                        return `<button onclick="selectFilter(${i})" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1.5px solid ${active ? 'var(--accent-4)' : 'rgba(255,255,255,0.12)'};background:${active ? 'rgba(0,210,255,0.18)' : 'rgba(255,255,255,0.05)'};color:${active ? 'var(--accent-4)' : 'var(--text-secondary)'};font-size:0.72rem;font-weight:${active ? '600' : '400'};cursor:pointer;transition:all 0.2s;white-space:nowrap;">${name}</button>`;
+                    }).join('');
+                    return `
+                        <div style="text-align:center; padding: 10px;">
+                            <div style="font-size: 2rem; margin-bottom: 5px; animation: ${c.isRecording ? 'recBlink 1s infinite' : 'none'};">
+                                ${c.isRecording ? '⏺️ Recording...' : '📸 Ready'}
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">
+                                Active Filter: <strong style="color:var(--accent-1);">${c.filterNames[c.currentFilterIndex]}</strong>
+                            </div>
+                            <div style="display:flex;gap:8px;overflow-x:auto;padding:6px 0 10px;margin-bottom:10px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;">
+                                ${filterBtns}
+                            </div>
+                            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                                <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <span style="font-size: 1.5rem;">✌️</span>
+                                    <span style="font-size: 0.7rem; margin-top: 5px; color: var(--text-secondary);">Photo</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <span style="font-size: 1.5rem;">🔴</span>
+                                    <span style="font-size: 0.7rem; margin-top: 5px; color: var(--text-secondary);">Video</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <span style="font-size: 1.5rem;">🖐️</span>
+                                    <span style="font-size: 0.7rem; margin-top: 5px; color: var(--text-secondary);">Filters</span>
+                                </div>
+                            </div>
+                            <div style="height: 90px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--border-color);">
+                                ${c.lastPhotoSrc
+                                    ? `<img src="${c.lastPhotoSrc}" style="max-height: 70px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">`
+                                    : `<span style="color:var(--text-secondary); font-size: 0.8rem;">No photos saved yet</span>`}
+                            </div>
+                        </div>`;
+                }
+            }
+        ];
+        // ==================== FILE LOADERS ====================
+        function loadAudio(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            audioElement = document.getElementById('audioPlayer');
+            if (audioElement) { audioElement.src = url; audioElement.volume = moduleStates.volume.level / 100; audioElement.play(); showToast('🎵', 'Audio loaded: ' + file.name); }
+        }
+        async function loadSlides(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+            presentationSlides = [];
+            moduleStates.presentation.currentSlide = 0;
+            if (files.length === 1 && files[0].type === 'application/pdf') {
+                showToast('📄', 'Loading PDF...');
+                const arrayBuffer = await files[0].arrayBuffer();
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 2 });
+                    const c = document.createElement('canvas');
+                    c.width = viewport.width; c.height = viewport.height;
+                    await page.render({ canvasContext: c.getContext('2d'), viewport }).promise;
+                    presentationSlides.push(c.toDataURL());
+                }
+                showToast('✅', `Loaded ${presentationSlides.length} slides from PDF`);
+            } else {
+                for (const file of files) { if (file.type.startsWith('image/')) presentationSlides.push(URL.createObjectURL(file)); }
+                showToast('✅', `Loaded ${presentationSlides.length} slide(s)`);
+            }
+            moduleStates.presentation.totalSlides = presentationSlides.length;
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[1].outputHTML();
+        }
+        function loadZoomImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            zoomImageSrc = URL.createObjectURL(file);
+            moduleStates.zoom.level = 100;
+            showToast('🖼️', 'Image loaded: ' + file.name);
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[4].outputHTML();
+        }
+        function downloadDrawing() {
+            const dc = moduleStates.drawing.drawCanvas;
+            if (!dc) return;
+            const link = document.createElement('a');
+            link.download = 'gesture-drawing-' + Date.now() + '.png';
+            link.href = dc.toDataURL();
+            link.click();
+            showToast('💾', 'Drawing downloaded!');
+        }
+        function clearDrawingCanvas() {
+            const dc = moduleStates.drawing.drawCanvas;
+            const ctx = moduleStates.drawing.drawCtx;
+            if (!dc || !ctx) return;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, dc.width, dc.height);
+            moduleStates.drawing.points = [];
+            showToast('🗑️', 'Canvas cleared!');
+        }
+        // ==================== OPEN / CLOSE MODULE ====================
+        function openModule(index) {
+            currentModule = index;
+            const mod = modules[index];
+            document.getElementById('modalBody').innerHTML = `
+                <div class="modal-header">
+                    <span class="icon">${mod.icon}</span>
+                    <div><h2>${mod.title}</h2><p>${mod.desc}</p></div>
+                </div>
+                <div class="modal-content">
+                    <div class="camera-section">
+                        <div class="camera-container">
+                            <video id="moduleVideo" playsinline></video>
+                            <canvas id="moduleCanvas"></canvas>
+                            <div class="camera-label"><div class="rec-dot"></div>LIVE</div>
+                        </div>
+                        <div class="hand-landmark-info" id="handInfo">Waiting for hand detection...</div>
+                    </div>
+                    <div class="controls-section">
+                        <div class="gesture-info-box">
+                            <h3>🎯 Gesture Controls</h3>
+                            <ul class="gesture-list">
+                                ${mod.gestures.map(g => `<li><span class="gesture-emoji">${g.emoji}</span><span class="gesture-name">${g.name}</span><span class="gesture-action">${g.action}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="output-box">
+                            <h3>📟 Output</h3>
+                            <div class="output-display" id="outputDisplay">${mod.outputHTML()}</div>
+                        </div>
+                    </div>
+                </div>
+                ${modalCreditHTML}`;
+            document.getElementById('modalOverlay').classList.add('active');
+            isModuleActive = true;
+            if (index === 2) {
+                setTimeout(() => {
+                    const dc = document.getElementById('drawingCanvas');
+                    if (dc) { dc.width = dc.parentElement.clientWidth; dc.height = dc.parentElement.clientHeight; moduleStates.drawing.drawCanvas = dc; moduleStates.drawing.drawCtx = dc.getContext('2d'); moduleStates.drawing.drawCtx.fillStyle = '#111'; moduleStates.drawing.drawCtx.fillRect(0, 0, dc.width, dc.height); moduleStates.drawing.points = []; }
+                }, 200);
+            }
+            if (index === 0) {
+                setTimeout(() => { audioElement = document.getElementById('audioPlayer'); if (audioElement) audioElement.volume = moduleStates.volume.level / 100; }, 200);
+            }
+            if (index === 5) {
+                setTimeout(async () => {
+                    if (!moduleStates.music.toneStarted) { await Tone.start(); moduleStates.music.toneStarted = true; }
+                    initMusicSynths();
+                    setTimeout(() => initMusic3D(), 100);
+                }, 200);
+            }
+            if (index === 6) {
+                // Delay longer to let CSS grid/modal transition finish before calculating dimensions
+                setTimeout(() => {
+                    initSpatial3DScene();
+                    // Force resize after another frame to be absolutely sure
+                    setTimeout(() => {
+                        if (moduleStates.spatial3d.resizeHandler) moduleStates.spatial3d.resizeHandler();
+                    }, 50);
+                }, 400);
+            }
+            setTimeout(startCamera, 300);
+        }
+        function closeModule() {
+            document.body.style.filter = '';
+            if (currentModule === 5) { disposeMusic3D(); disposeMusicSynths(); }
+            if (currentModule === 6) disposeSpatial3D();
+            if (currentModule === 7) {
+                const overlay = document.getElementById('photoPreviewOverlay');
+                if (overlay) overlay.remove();
+                if (videoElement) videoElement.style.filter = '';
+            }
+            isModuleActive = false;
+            currentModule = -1;
+            document.getElementById('modalOverlay').classList.remove('active');
+            stopCamera();
+        }
+        // ==================== CAMERA ====================
+        function startCamera() {
+            videoElement = document.getElementById('moduleVideo');
+            canvasElement = document.getElementById('moduleCanvas');
+            canvasCtx = canvasElement.getContext('2d');
+            hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}` });
+            hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.5 });
+            hands.onResults(onHandResults);
+            camera = new Camera(videoElement, {
+                onFrame: async () => { if (isModuleActive && hands) await hands.send({ image: videoElement }); },
+                width: 640, height: 480
+            });
+            camera.start().then(() => {
+                document.getElementById('cameraStatus').classList.add('active');
+                document.getElementById('modelStatus').classList.add('active');
+                document.getElementById('gestureStatus').classList.add('active');
+                canvasElement.width = 640; canvasElement.height = 480;
+            });
+        }
+        function stopCamera() {
+            if (camera) { camera.stop(); camera = null; }
+            document.getElementById('cameraStatus').classList.remove('active');
+            document.getElementById('modelStatus').classList.remove('active');
+            document.getElementById('gestureStatus').classList.remove('active');
+        }
+        // ==================== HAND RESULTS ====================
+        function onHandResults(results) {
+            if (!isModuleActive || !canvasCtx) return;
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                for (const lm of results.multiHandLandmarks) {
+                    drawConnectors(canvasCtx, lm, HAND_CONNECTIONS, { color: 'rgba(0,210,255,0.4)', lineWidth: 2 });
+                    drawLandmarks(canvasCtx, lm, { color: '#e94560', lineWidth: 1, radius: 3 });
+                }
+                const hi = document.getElementById('handInfo');
+                if (hi) hi.textContent = `✋ ${results.multiHandLandmarks.length} hand(s) detected`;
+                processGesture(results.multiHandLandmarks, results.multiHandedness);
+            } else {
+                const hi = document.getElementById('handInfo');
+                if (hi) hi.textContent = 'Waiting for hand detection...';
+            }
+            canvasCtx.restore();
+        }
+        // ==================== GESTURE PROCESSING ====================
+        function processGesture(allLm, handedness) {
+            const lm = allLm[0];
+            switch (currentModule) {
+                case 0: processVolume(lm); break;
+                case 1: processPresentation(lm); break;
+                case 2: processDrawing(lm); break;
+                case 3: processBrightness(lm); break;
+                case 4: processZoom(lm, allLm); break;
+                case 5: processMusic(lm); break;
+                case 6: processSpatial3D(lm); break;
+                case 7: processCameraModule(lm); break;
+            }
+        }
+        function dist(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
+        function countFingersUp(lm) {
+            let c = 0;
+            if (lm[4].x < lm[3].x) c++;
+            if (lm[8].y < lm[6].y) c++;
+            if (lm[12].y < lm[10].y) c++;
+            if (lm[16].y < lm[14].y) c++;
+            if (lm[20].y < lm[18].y) c++;
+            return c;
+        }
+        function isFist(lm) { return countFingersUp(lm) <= 1; }
+        function isOpenPalm(lm) { return countFingersUp(lm) >= 4; }
+        function mapRange(v, iMin, iMax, oMin, oMax) { return (v - iMin) * (oMax - oMin) / (iMax - iMin) + oMin; }
+        // ==================== MODULE 1: VOLUME ====================
+        let lastFistTime_vol = 0;
+        function processVolume(lm) {
+            const d = dist(lm[4], lm[8]);
+            const now = Date.now();
+            const ap = document.getElementById('audioPlayer');
+            if (isFist(lm)) {
+                if (now - lastFistTime_vol > 1000) {
+                    moduleStates.volume.muted = !moduleStates.volume.muted;
+                    lastFistTime_vol = now;
+                    if (ap) ap.muted = moduleStates.volume.muted;
+                    showToast(moduleStates.volume.muted ? '🔇' : '🔊', moduleStates.volume.muted ? 'Muted!' : 'Unmuted!');
+                }
+            } else {
+                let vol = Math.round(mapRange(d, 0.03, 0.3, 0, 100));
+                vol = Math.max(0, Math.min(100, vol));
+                moduleStates.volume.level = vol;
+                moduleStates.volume.muted = false;
+                if (ap) { ap.volume = vol / 100; ap.muted = false; }
+            }
+            const ve = document.getElementById('volumeValue'), be = document.getElementById('volumeBar');
+            if (ve) ve.textContent = moduleStates.volume.muted ? '🔇 MUTED' : moduleStates.volume.level + '%';
+            if (be) be.style.width = (moduleStates.volume.muted ? 0 : moduleStates.volume.level) + '%';
+        }
+        // ==================== MODULE 2: PRESENTATION ====================
+        function processPresentation(lm) {
+            const s = moduleStates.presentation;
+            if (s.totalSlides === 0) return;
+            const now = Date.now(), wx = lm[0].x, f = countFingersUp(lm);
+            if (s.lastX !== null && now - s.lastSwipeTime > 800) {
+                const dx = wx - s.lastX;
+                if (dx > 0.08) { s.currentSlide = Math.max(0, s.currentSlide - 1); s.lastSwipeTime = now; showToast('👈', 'Slide ' + (s.currentSlide + 1)); }
+                else if (dx < -0.08) { s.currentSlide = Math.min(s.totalSlides - 1, s.currentSlide + 1); s.lastSwipeTime = now; showToast('👉', 'Slide ' + (s.currentSlide + 1)); }
+            }
+            if (lm[4].y < lm[3].y && lm[4].y < lm[8].y && f <= 2 && now - s.lastSwipeTime > 1000) { s.currentSlide = 0; s.lastSwipeTime = now; showToast('👍', 'First Slide'); }
+            if (isFist(lm) && now - s.lastSwipeTime > 1000) { s.currentSlide = s.totalSlides - 1; s.lastSwipeTime = now; showToast('✊', 'Last Slide'); }
+            s.lastX = wx;
+            const img = document.getElementById('slideImage');
+            if (img && presentationSlides[s.currentSlide]) img.src = presentationSlides[s.currentSlide];
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[1].outputHTML();
+        }
+        // ==================== MODULE 3: DRAWING ====================
+        const drawColors = ['#00d2ff', '#e94560', '#7928ca', '#ff9a00', '#00ff88', '#ff6b9d', '#fff'];
+        let colorIndex = 0, lastColorSwitch = 0;
+        function processDrawing(lm) {
+            const dc = moduleStates.drawing.drawCtx, dcC = moduleStates.drawing.drawCanvas;
+            if (!dc || !dcC) return;
+            const f = countFingersUp(lm), now = Date.now();
+            // ☝️ Index Finger: Draw smoothly with Bezier and Neon Glow
+            if (lm[8].y < lm[6].y && lm[12].y > lm[10].y) {
+                const x = lm[8].x * dcC.width, y = lm[8].y * dcC.height;
+                const pts = moduleStates.drawing.points;
+                if (pts.length > 0) {
+                    // Smooth Quadratic Bezier curve interpolation
+                    dc.beginPath();
+                    // Move to the last drawn actual midpoint
+                    if (pts.length > 1) {
+                        const xc = (pts[pts.length - 2].x + pts[pts.length - 1].x) / 2;
+                        const yc = (pts[pts.length - 2].y + pts[pts.length - 1].y) / 2;
+                        dc.moveTo(xc, yc);
+                    } else {
+                        dc.moveTo(pts[0].x, pts[0].y);
+                    }
+                    // Curve to the new midpoint via the raw last point
+                    const newXc = (pts[pts.length - 1].x + x) / 2;
+                    const newYc = (pts[pts.length - 1].y + y) / 2;
+                    dc.quadraticCurveTo(pts[pts.length - 1].x, pts[pts.length - 1].y, newXc, newYc);
+                    // Neon Bloom Styling
+                    dc.strokeStyle = '#ffffff'; // White core
+                    dc.lineWidth = 4;
+                    dc.lineCap = 'round';
+                    dc.lineJoin = 'round';
+                    dc.shadowBlur = 15; // Heavy neon bloom
+                    dc.shadowColor = moduleStates.drawing.color; // Colored halo
+                    // Draw!
+                    dc.stroke();
+                }
+                pts.push({ x, y });
+                // Keep points array small to prevent memory bloat over long drawing sessions
+                if (pts.length > 20) pts.shift();
+            } else if (isFist(lm)) {
+                moduleStates.drawing.points = [];
+            } else if (isOpenPalm(lm) && f >= 5) {
+                dc.shadowBlur = 0; // Reset shadow so fillRect doesn't bloom
+                dc.fillStyle = '#111'; dc.fillRect(0, 0, dcC.width, dcC.height);
+                moduleStates.drawing.points = [];
+                showToast('🖐️', 'Canvas Cleared!');
+            }
+            else if (lm[8].y < lm[6].y && lm[12].y < lm[10].y && lm[16].y > lm[14].y) {
+                if (now - lastColorSwitch > 1000) { colorIndex = (colorIndex + 1) % drawColors.length; moduleStates.drawing.color = drawColors[colorIndex]; lastColorSwitch = now; showToast('🎨', 'Color: ' + drawColors[colorIndex]); const cc = document.getElementById('currentColor'); if (cc) cc.style.background = moduleStates.drawing.color; }
+                moduleStates.drawing.points = [];
+            } else { moduleStates.drawing.points = []; }
+        }
+        // ==================== MODULE 4: BRIGHTNESS ====================
+        function processBrightness(lm) {
+            if (isFist(lm)) { moduleStates.brightness.level = 50; showToast('✊', 'Brightness Reset!'); }
+            else { let b = Math.round(mapRange(lm[9].y, 0.9, 0.1, 0, 100)); moduleStates.brightness.level = Math.max(0, Math.min(100, b)); }
+            const ve = document.getElementById('brightnessValue'), be = document.getElementById('brightnessBar');
+            if (ve) ve.textContent = moduleStates.brightness.level + '%';
+            if (be) be.style.width = moduleStates.brightness.level + '%';
+            document.body.style.filter = `brightness(${0.2 + (moduleStates.brightness.level / 100) * 1.0})`;
+        }
+        // ==================== MODULE 5: ZOOM ====================
+        function processZoom(lm, allLm) {
+            if (isFist(lm)) { moduleStates.zoom.level = 100; showToast('✊', 'Zoom Reset!'); }
+            else { const d = dist(lm[4], lm[8]); let z = Math.round(mapRange(d, 0.03, 0.35, 50, 400)); moduleStates.zoom.level = Math.max(50, Math.min(400, z)); }
+            const ve = document.getElementById('zoomValue');
+            const img = document.getElementById('zoomImage');
+            if (ve) ve.textContent = moduleStates.zoom.level + '%';
+            if (img) img.style.transform = `scale(${moduleStates.zoom.level / 100})`;
+        }
+        // ==================== MODULE 8: AI CAMERA STUDIO ====================
+        function processCameraModule(lm) {
+            const now = Date.now();
+            const c = moduleStates.camera;
+            // ✌️ Peace Sign - Snap Photo
+            if (countFingersUp(lm) === 2 && lm[8].y < lm[6].y && lm[12].y < lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y) {
+                if (now - c.lastSnapTime > 1500) {
+                    c.lastSnapTime = now;
+                    snapPhoto();
+                }
+            }
+            // 🔴 Pinch - Toggle Recording
+            if (dist(lm[4], lm[8]) < 0.05 && !isOpenPalm(lm)) {
+                if (now - c.lastRecTime > 1500) {
+                    c.lastRecTime = now;
+                    toggleVideoRecording();
+                }
+            }
+            // 🖐️ Open Palm - Cycle Live Filters
+            if (isOpenPalm(lm)) {
+                if (now - c.lastFilterTime > 1500) {
+                    c.lastFilterTime = now;
+                    updateFilter((c.currentFilterIndex + 1) % c.filters.length);
+                }
+            }
+        }
+        function updateFilter(index) {
+            const c = moduleStates.camera;
+            c.currentFilterIndex = index;
+            if (videoElement) videoElement.style.filter = c.filters[index];
+            showToast('🎨', 'Filter: ' + c.filterNames[index]);
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[7].outputHTML();
+        }
+        function applyLiveFilter() {
+            const c = moduleStates.camera;
+            if (videoElement) videoElement.style.filter = c.filters[c.currentFilterIndex];
+        }
+        function selectFilter(index) {
+            updateFilter(index);
+        }
+        function snapPhoto() {
+            if (!videoElement) return;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = videoElement.videoWidth || 640;
+            tempCanvas.height = videoElement.videoHeight || 480;
+            const ctx = tempCanvas.getContext('2d');
+            // Apply current filter to canvas context
+            const c = moduleStates.camera;
+            ctx.filter = c.filters[c.currentFilterIndex];
+            // Mirror image since webcam is mirrored
+            ctx.translate(tempCanvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
+            const dataURL = tempCanvas.toDataURL('image/png');
+            // Flash screen
+            const flash = document.createElement('div');
+            flash.style.position = 'fixed'; flash.style.inset = '0'; flash.style.background = '#fff'; flash.style.zIndex = '9999'; flash.style.transition = 'opacity 0.2s';
+            document.body.appendChild(flash);
+            setTimeout(() => { flash.style.opacity = '0'; }, 50);
+            setTimeout(() => { flash.remove(); }, 250);
+            // Show preview dialog instead of auto-saving
+            showPhotoPreview(dataURL);
+        }
+        function showPhotoPreview(dataURL) {
+            const existing = document.getElementById('photoPreviewOverlay');
+            if (existing) existing.remove();
+            const overlay = document.createElement('div');
+            overlay.id = 'photoPreviewOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s;';
+            const dialog = document.createElement('div');
+            dialog.style.cssText = 'background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:24px;padding:28px 24px;max-width:92%;width:480px;text-align:center;animation:slideUp 0.4s cubic-bezier(0.175,0.885,0.32,1.275);';
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:1.3rem;font-weight:700;margin-bottom:14px;color:var(--text-primary);';
+            title.textContent = '📸 Photo Preview';
+            const img = document.createElement('img');
+            img.src = dataURL;
+            img.style.cssText = 'max-width:100%;max-height:55vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.6);display:block;margin:0 auto 20px;';
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:12px;justify-content:center;';
+            const saveBtn = document.createElement('button');
+            saveBtn.innerHTML = '💾 Save';
+            saveBtn.style.cssText = 'background:var(--accent-4);border:none;color:#fff;padding:12px 30px;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;';
+            saveBtn.onmouseenter = () => { saveBtn.style.opacity = '0.85'; saveBtn.style.transform = 'scale(1.04)'; };
+            saveBtn.onmouseleave = () => { saveBtn.style.opacity = '1'; saveBtn.style.transform = 'scale(1)'; };
+            saveBtn.onclick = () => savePhoto(dataURL);
+            const discardBtn = document.createElement('button');
+            discardBtn.innerHTML = '🗑️ Discard';
+            discardBtn.style.cssText = 'background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-primary);padding:12px 30px;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;';
+            discardBtn.onmouseenter = () => { discardBtn.style.borderColor = 'var(--accent-1)'; discardBtn.style.color = 'var(--accent-1)'; };
+            discardBtn.onmouseleave = () => { discardBtn.style.borderColor = 'var(--border-color)'; discardBtn.style.color = 'var(--text-primary)'; };
+            discardBtn.onclick = () => discardPhoto();
+            btnRow.appendChild(saveBtn);
+            btnRow.appendChild(discardBtn);
+            dialog.appendChild(title);
+            dialog.appendChild(img);
+            dialog.appendChild(btnRow);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+        }
+        function savePhoto(dataURL) {
+            const c = moduleStates.camera;
+            c.lastPhotoSrc = dataURL;
+            const link = document.createElement('a');
+            link.download = 'AI_Camera_Snap_' + Date.now() + '.png';
+            link.href = dataURL;
+            link.click();
+            discardPhoto();
+            showToast('💾', 'Photo Saved!');
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[7].outputHTML();
+        }
+        function discardPhoto() {
+            const overlay = document.getElementById('photoPreviewOverlay');
+            if (overlay) overlay.remove();
+            showToast('🗑️', 'Photo Discarded');
+        }
+        function toggleVideoRecording() {
+            const c = moduleStates.camera;
+            if (!videoElement || !videoElement.srcObject) return;
+            if (c.isRecording) {
+                if (c.mediaRecorder && c.mediaRecorder.state !== 'inactive') {
+                    c.mediaRecorder.stop();
+                }
+                c.isRecording = false;
+                showToast('🛑', 'Recording Stopped & Saved!');
+            } else {
+                c.recordedChunks = [];
+                const stream = videoElement.srcObject;
+                try {
+                    c.mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                } catch (e) {
+                    c.mediaRecorder = new MediaRecorder(stream); // fallback
+                }
+                c.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) c.recordedChunks.push(event.data);
+                };
+                c.mediaRecorder.onstop = () => {
+                    const blob = new Blob(c.recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = 'AI_Camera_Video_' + Date.now() + '.webm';
+                    link.href = url;
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                };
+                c.mediaRecorder.start();
+                c.isRecording = true;
+                showToast('⏺️', 'Recording Started...');
+            }
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[7].outputHTML();
+        }
+        // (Music arrays moved to top to prevent ReferenceError)
+        function initMusicSynths() {
+            const ms = moduleStates.music;
+            if (Object.keys(ms.synths).length > 0) return;
+            ms.reverb = new Tone.Reverb({ decay: 2.5, wet: 0.35 }).toDestination();
+            ms.reverb.generate();
+            // Piano
+            let pianoS = new Tone.PolySynth(Tone.Synth, musicInstruments[0].opts);
+            if (ms.reverbOn) pianoS.connect(ms.reverb); else pianoS.toDestination();
+            ms.synths.piano = pianoS;
+            // Drums — kick, snare, hihat, clap
+            ms.synths.drumKick = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 6, oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.3, sustain: 0.01, release: 0.5 }, volume: -4 }).toDestination();
+            ms.synths.drumSnare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 }, volume: -8 }).toDestination();
+            ms.synths.drumHihat = new Tone.MetalSynth({ frequency: 400, envelope: { attack: 0.001, decay: 0.08, release: 0.05 }, volume: -12 }).toDestination();
+            ms.synths.drumClap = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.001, decay: 0.12, sustain: 0 }, volume: -10 }).toDestination();
+            // Bass
+            let bassS = new Tone[musicInstruments[2].type](musicInstruments[2].opts);
+            if (ms.reverbOn) bassS.connect(ms.reverb); else bassS.toDestination();
+            ms.synths.bass = bassS;
+            // Synth
+            let synthS = new Tone.MonoSynth(musicInstruments[3].opts);
+            if (ms.reverbOn) synthS.connect(ms.reverb); else synthS.toDestination();
+            ms.synths.synth = synthS;
+        }
+        function disposeMusicSynths() {
+            const ms = moduleStates.music;
+            Object.values(ms.synths).forEach(s => { try { s.dispose(); } catch (e) { } });
+            ms.synths = {};
+            if (ms.reverb) { ms.reverb.dispose(); ms.reverb = null; }
+            ms.activeNote = null;
+        }
+        function getActiveMusSynth() {
+            const ms = moduleStates.music;
+            const id = musicInstruments[ms.instrumentIndex].id;
+            return ms.synths[id] || null;
+        }
+        function switchMusicInstrument(idx) {
+            const ms = moduleStates.music;
+            ms.instrumentIndex = idx; ms.instrument = musicInstruments[idx].id;
+            updateMusicUI();
+            setTimeout(() => initMusic3D(), 50);
+            const stage = document.getElementById('music3dStage');
+            if (stage) { stage.classList.remove('music3d-snap'); void stage.offsetWidth; stage.classList.add('music3d-snap'); }
+            showToast(musicInstruments[idx].icon, 'Switched to ' + musicInstruments[idx].name);
+        }
+        function toggleReverb() {
+            const ms = moduleStates.music; ms.reverbOn = !ms.reverbOn;
+            ['piano', 'bass', 'synth'].forEach(k => { const s = ms.synths[k]; if (s) { try { s.disconnect(); } catch (e) { } if (ms.reverbOn) s.connect(ms.reverb); else s.toDestination(); } });
+            updateMusicUI(); showToast('🌊', ms.reverbOn ? 'Reverb ON' : 'Reverb OFF');
+        }
+        function updateMusicUI() {
+            const output = document.getElementById('outputDisplay');
+            if (output) output.innerHTML = modules[5].outputHTML();
+        }
+        function highlightPianoKey(note) {
+            document.querySelectorAll('.piano-key').forEach(k => k.classList.remove('active'));
+            if (note) { const el = document.getElementById('pianoKey-' + note.replace('#', 's')); if (el) el.classList.add('active'); }
+        }
+        function hitDrumPad(padId) {
+            const el = document.getElementById(padId); if (!el) return;
+            el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 200);
+        }
+        function pluckBassString(idx) {
+            for (let i = 0; i < 4; i++) { const s = document.getElementById('bStr' + i); if (s) s.classList.toggle('plucked', i === idx); }
+            const pick = document.getElementById('bassPick');
+            if (pick) { pick.style.top = (15 + idx * 20) + '%'; }
+        }
+        function animateVisualizer(intensity) {
+            const bars = document.querySelectorAll('#musicVisualizer .viz-bar');
+            bars.forEach(b => { b.style.height = (intensity > 0 ? (Math.random() * 30 * intensity + 4) : Math.random() * 4 + 2) + 'px'; });
+        }
+        function setMusicStatus(text) {
+            const el = document.getElementById('musicStatus'); if (el) el.textContent = text;
+        }
+        function isIndexFingerOnly(lm) {
+            return lm[8].y < lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+        }
+        function isPinchGesture(lm) { return dist(lm[4], lm[8]) < 0.05; }
+        function isTwoFingerUp(lm) {
+            return lm[8].y < lm[6].y && lm[12].y < lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+        }
+        // ==================== MUSIC 3D SCENE ====================
+        let music3d = { scene: null, camera: null, renderer: null, model: null, animId: null, trailCtx: null, glowObj: null };
+        function initMusic3D() {
+            disposeMusic3D();
+            const stage = document.getElementById('music3dStage'); if (!stage || !window.THREE) return;
+            const w = stage.clientWidth, h = stage.clientHeight;
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100); camera.position.set(0, 1.5, 4); camera.lookAt(0, 0, 0);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(w, h); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x030308, 1); renderer.domElement.classList.add('music3d-canvas');
+            // Remove old canvas if any
+            const oldC = stage.querySelector('.music3d-canvas'); if (oldC) oldC.remove();
+            stage.insertBefore(renderer.domElement, stage.firstChild);
+            // Lights
+            const amb = new THREE.AmbientLight(0x222233, 0.3); scene.add(amb);
+            const inst = musicInstruments[moduleStates.music.instrumentIndex];
+            const col = new THREE.Color(inst.glowColor.replace(/rgba?\([^)]+\)/, function (m) { const p = m.match(/[\d.]+/g); return 'rgb(' + Math.round(p[0]) + ',' + Math.round(p[1]) + ',' + Math.round(p[2]) + ')'; }));
+            const pt1 = new THREE.PointLight(col, 1.5, 10); pt1.position.set(2, 2, 2); scene.add(pt1);
+            const pt2 = new THREE.PointLight(0x6644ff, 0.8, 10); pt2.position.set(-2, 1, -2); scene.add(pt2);
+            // Holographic grid floor
+            const gridGeo = new THREE.PlaneGeometry(10, 10, 20, 20);
+            const gridMat = new THREE.MeshBasicMaterial({ color: 0x4411aa, wireframe: true, transparent: true, opacity: 0.08 });
+            const grid = new THREE.Mesh(gridGeo, gridMat); grid.rotation.x = -Math.PI / 2; grid.position.y = -1.2; scene.add(grid);
+            // Build instrument model
+            const model = buildInstrument3D(inst.id, col); scene.add(model);
+            // Glow sphere around model
+            const glowGeo = new THREE.SphereGeometry(1.3, 24, 24);
+            const glowMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.04, side: THREE.BackSide });
+            const glowObj = new THREE.Mesh(glowGeo, glowMat); scene.add(glowObj);
+            // Trail canvas
+            const trailC = document.getElementById('music3dTrail');
+            let trailCtx = null;
+            if (trailC) { trailC.width = w; trailC.height = h; trailCtx = trailC.getContext('2d'); }
+            music3d = { scene, camera, renderer, model, animId: null, trailCtx, glowObj };
+            function animate() {
+                music3d.animId = requestAnimationFrame(animate);
+                if (music3d.model) { music3d.model.rotation.y += 0.004; music3d.model.position.y = Math.sin(Date.now() * 0.001) * 0.08; }
+                if (music3d.glowObj) { music3d.glowObj.rotation.y -= 0.002; }
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        function buildInstrument3D(id, color) {
+            const group = new THREE.Group();
+            const matSolid = new THREE.MeshPhysicalMaterial({ color: color, metalness: 0.7, roughness: 0.2, transparent: true, opacity: 0.5, emissive: color, emissiveIntensity: 0.15 });
+            const matWire = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.3 });
+            if (id === 'piano') {
+                for (let i = 0; i < 8; i++) {
+                    const w = 0.12, h = 0.06 + (i % 2 === 0 ? 0 : 0.04), d = 0.6;
+                    const geo = new THREE.BoxGeometry(w, h, d);
+                    const key = new THREE.Mesh(geo, matSolid.clone());
+                    key.position.set(-0.5 + i * 0.14, 0, 0); group.add(key);
+                    const wf = new THREE.Mesh(geo, matWire.clone()); wf.position.copy(key.position); group.add(wf);
+                }
+                const bodyGeo = new THREE.BoxGeometry(1.3, 0.08, 0.7);
+                const body = new THREE.Mesh(bodyGeo, matSolid); body.position.y = -0.06; group.add(body);
+            } else if (id === 'drums') {
+                const kickGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 24);
+                const kick = new THREE.Mesh(kickGeo, matSolid); kick.rotation.x = Math.PI / 2; kick.position.set(0, -0.3, 0); group.add(kick);
+                const kickW = new THREE.Mesh(kickGeo, matWire); kickW.rotation.x = Math.PI / 2; kickW.position.copy(kick.position); group.add(kickW);
+                const snareGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.12, 20);
+                const snare = new THREE.Mesh(snareGeo, matSolid.clone()); snare.position.set(0.45, 0.15, 0); group.add(snare);
+                const hatGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.02, 20);
+                const hat = new THREE.Mesh(hatGeo, matSolid.clone()); hat.position.set(-0.45, 0.4, 0); group.add(hat);
+                const cymGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.02, 20);
+                const cym = new THREE.Mesh(cymGeo, matSolid.clone()); cym.position.set(0.3, 0.5, 0.1); group.add(cym);
+            } else if (id === 'bass') {
+                const bodyGeo = new THREE.BoxGeometry(0.35, 1.6, 0.08);
+                const body = new THREE.Mesh(bodyGeo, matSolid); group.add(body);
+                const bodyW = new THREE.Mesh(bodyGeo, matWire); group.add(bodyW);
+                const headGeo = new THREE.BoxGeometry(0.2, 0.3, 0.06);
+                const head = new THREE.Mesh(headGeo, matSolid.clone()); head.position.set(0, 0.95, 0); group.add(head);
+                for (let i = 0; i < 4; i++) {
+                    const strGeo = new THREE.CylinderGeometry(0.003, 0.003, 1.4, 6);
+                    const str = new THREE.Mesh(strGeo, new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.5 }));
+                    str.position.set(-0.08 + i * 0.053, 0, 0.05); group.add(str);
+                }
+            } else if (id === 'synth') {
+                const torus = new THREE.Mesh(new THREE.TorusKnotGeometry(0.5, 0.15, 80, 16), matSolid); group.add(torus);
+                const torusW = new THREE.Mesh(new THREE.TorusKnotGeometry(0.52, 0.16, 80, 16), matWire); group.add(torusW);
+                const baseGeo = new THREE.BoxGeometry(1.2, 0.06, 0.5);
+                const base = new THREE.Mesh(baseGeo, matSolid.clone()); base.position.y = -0.7; group.add(base);
+            }
+            return group;
+        }
+        function disposeMusic3D() {
+            if (music3d.animId) cancelAnimationFrame(music3d.animId);
+            if (music3d.renderer) { music3d.renderer.dispose(); const c = music3d.renderer.domElement; if (c && c.parentNode) c.parentNode.removeChild(c); }
+            if (music3d.scene) { music3d.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose()); else o.material.dispose(); } }); }
+            music3d = { scene: null, camera: null, renderer: null, model: null, animId: null, trailCtx: null, glowObj: null };
+        }
+        function drawMusicTrail(lm) {
+            const ctx = music3d.trailCtx; if (!ctx) return;
+            const c = ctx.canvas;
+            ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0, 0, c.width, c.height);
+            ctx.globalCompositeOperation = 'lighter';
+            const inst = musicInstruments[moduleStates.music.instrumentIndex];
+            const col = inst.glowColor.replace(/[\d.]+\)$/, '0.8)');
+            [4, 8, 12].forEach(i => {
+                const x = (1 - lm[i].x) * c.width, y = lm[i].y * c.height;
+                ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = col; ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = col.replace('0.8)', '0.15)'); ctx.fill();
+            });
+        }
+        function pulseMusic3D(intensity) {
+            if (!music3d.model) return;
+            const s = 1 + intensity * 0.15;
+            music3d.model.scale.set(s, s, s);
+            setTimeout(() => { if (music3d.model) music3d.model.scale.set(1, 1, 1); }, 150);
+            if (music3d.glowObj) {
+                music3d.glowObj.material.opacity = 0.02 + intensity * 0.06;
+                setTimeout(() => { if (music3d.glowObj) music3d.glowObj.material.opacity = 0.04; }, 200);
+            }
+        }
+        // --- Strict Gestures for Music ---
+        function getFingers(lm) {
+            return {
+                I: lm[8].y < lm[6].y,
+                M: lm[12].y < lm[10].y,
+                R: lm[16].y < lm[14].y,
+                P: lm[20].y < lm[18].y
+            };
+        }
+        function isStrictThumbUp(lm) { const f = getFingers(lm); return !f.I && !f.M && !f.R && !f.P && lm[4].y < lm[5].y - 0.05; }
+        function isStrictFist(lm) { const f = getFingers(lm); return !f.I && !f.M && !f.R && !f.P && lm[4].y >= lm[5].y - 0.05; }
+        function isStrictIndex(lm) { const f = getFingers(lm); return f.I && !f.M && !f.R && !f.P && dist(lm[4], lm[8]) > 0.05; }
+        function isStrictTwoFinger(lm) { const f = getFingers(lm); return f.I && f.M && !f.R && !f.P; }
+        function isStrictThreeFinger(lm) { const f = getFingers(lm); return f.I && f.M && f.R && !f.P; }
+        function isStrictFourFinger(lm) { const f = getFingers(lm); return f.I && f.M && f.R && f.P && dist(lm[4], lm[8]) > 0.05; }
+        function isStrictPinky(lm) { const f = getFingers(lm); return !f.I && !f.M && !f.R && f.P; }
+        function isStrictHorns(lm) { const f = getFingers(lm); return f.I && !f.M && !f.R && f.P; }
+        function isStrictOK(lm) { const f = getFingers(lm); return dist(lm[4], lm[8]) < 0.05 && f.M && f.R && f.P; }
+        function isStrictPinch(lm) { const f = getFingers(lm); return dist(lm[4], lm[8]) < 0.05 && !f.M && !f.R && !f.P; }
+        function processMusic(lm) {
+            drawMusicTrail(lm);
+            const ms = moduleStates.music; const now = Date.now();
+            const instId = musicInstruments[ms.instrumentIndex].id;
+            // 👍 Thumbs Up — Switch instrument (Global)
+            if (isStrictThumbUp(lm)) {
+                if (now - ms.lastInstrumentSwitch > 1200) {
+                    ms.lastInstrumentSwitch = now;
+                    ms.instrumentIndex = (ms.instrumentIndex + 1) % musicInstruments.length;
+                    ms.instrument = musicInstruments[ms.instrumentIndex].id;
+                    updateMusicUI();
+                    showToast(musicInstruments[ms.instrumentIndex].icon, musicInstruments[ms.instrumentIndex].name);
+                }
+                return;
+            }
+            // ===== PIANO =====
+            if (instId === 'piano') {
+                // ✊ Fist — Master Stop (Global)
+                if (isStrictFist(lm)) {
+                    if (now - ms.lastFistTime > 800) { ms.lastFistTime = now; try { ms.synths.piano.releaseAll(); } catch (e) { } ms.activeNote = null; highlightPianoKey(null); animateVisualizer(0); setMusicStatus('✊ Notes stopped'); showToast('✊', 'Piano silenced'); }
+                    return;
+                }
+                // ☝️ Index Finger (Press Key)
+                if (isStrictIndex(lm)) {
+                    const x = lm[8].x; const notes = getMusicNotes(ms.octave || 4);
+                    const idx = Math.min(notes.length - 1, Math.max(0, Math.floor(x * notes.length))); const note = notes[idx];
+                    if (note !== ms.activeNote) {
+                        try { if (ms.activeNote) ms.synths.piano.triggerRelease(ms.activeNote); } catch (e) { }
+                        try { ms.synths.piano.triggerAttackRelease(note, '8n'); } catch (e) { }
+                        ms.activeNote = note; highlightPianoKey(note); animateVisualizer(0.8); pulseMusic3D(0.8); setMusicStatus('☝️ ' + note);
+                    }
+                    return;
+                }
+                if (ms.activeNote) { try { ms.synths.piano.triggerRelease(ms.activeNote); } catch (e) { } ms.activeNote = null; }
+                highlightPianoKey(null); animateVisualizer(0); return;
+            }
+            // ===== DRUMS =====
+            if (instId === 'drums') {
+                // ✊ Fist - Master Stop
+                if (isStrictFist(lm)) { return; }
+                // 🤟 Horns - Kick
+                if (isStrictHorns(lm)) {
+                    if (now - ms.lastDrumTime > 250) { ms.lastDrumTime = now; ms.synths.drumKick.triggerAttackRelease('C1', '8n'); hitDrumPad('padKick'); animateVisualizer(1.2); pulseMusic3D(1.2); setMusicStatus('🤟 KICK!'); showToast('🥁', 'Kick!'); }
+                    return;
+                }
+                // 🖖 Three Fingers - Snare
+                if (isStrictThreeFinger(lm)) {
+                    if (now - ms.lastFistTime > 300) { ms.lastFistTime = now; ms.synths.drumSnare.triggerAttackRelease('8n'); hitDrumPad('padSnare'); animateVisualizer(1.0); pulseMusic3D(1.0); setMusicStatus('🖖 SNARE!'); showToast('🪘', 'Snare!'); }
+                    return;
+                }
+                // 🤙 Pinky - Hi-Hat
+                if (isStrictPinky(lm)) {
+                    if (now - ms.lastNoteTime > 200) { ms.lastNoteTime = now; ms.synths.drumHihat.triggerAttackRelease('C4', '32n'); hitDrumPad('padHihat'); animateVisualizer(0.5); pulseMusic3D(0.5); setMusicStatus('🤙 Hi-hat'); }
+                    return;
+                }
+                // 🖐️ Open Palm - Crash
+                if (isStrictFourFinger(lm)) {
+                    if (now - ms.lastInstrumentSwitch > 400) { ms.lastInstrumentSwitch = now; ms.synths.drumClap.triggerAttackRelease('8n'); hitDrumPad('padClap'); animateVisualizer(0.7); pulseMusic3D(0.7); setMusicStatus('🖐️ Crash!'); }
+                    return;
+                }
+                animateVisualizer(0); return;
+            }
+            // ===== BASS =====
+            if (instId === 'bass') {
+                // ✊ Fist - Master Stop
+                if (isStrictFist(lm)) {
+                    if (now - ms.lastFistTime > 500) { ms.lastFistTime = now; try { ms.synths.bass.triggerRelease(); } catch (e) { } ms.activeNote = null; pluckBassString(-1); animateVisualizer(0); setMusicStatus('✊ Muted'); }
+                    return;
+                }
+                // ✌️ Two-Finger Drag - Pluck Strings
+                if (isStrictTwoFinger(lm)) {
+                    const y = lm[8].y;
+                    const bassNotes = ['E2', 'A2', 'D3', 'G3'];
+                    const strIdx = Math.min(3, Math.max(0, Math.floor(y * 4)));
+                    const note = bassNotes[strIdx];
+                    if (note !== ms.activeNote) {
+                        try { ms.synths.bass.triggerAttackRelease(note, '4n'); } catch (e) { console.error('Bass play error', e); }
+                        ms.activeNote = note; pluckBassString(strIdx); animateVisualizer(0.9); pulseMusic3D(0.9); setMusicStatus('✌️ String ' + note);
+                    }
+                    return;
+                }
+                ms.activeNote = null; pluckBassString(-1); animateVisualizer(0); return;
+            }
+            // ===== SYNTH =====
+            if (instId === 'synth') {
+                // ✊ Fist - Master Stop
+                if (isStrictFist(lm)) {
+                    if (now - ms.lastFistTime > 800) {
+                        ms.lastFistTime = now; try { ms.synths.synth.triggerRelease(); } catch (e) { }
+                        ms.activeNote = null; animateVisualizer(0); setMusicStatus('✊ Stopped');
+                    }
+                    return;
+                }
+                // 👌 OK Sign - Air Modulate
+                if (isStrictOK(lm)) {
+                    const cx = lm[9].x, cy = lm[9].y; const cutoff = Math.round(100 + cx * 8000); const reso = Math.round(1 + cy * 10);
+                    try { ms.synths.synth.filter.frequency.rampTo(cutoff, 0.05); ms.synths.synth.filter.Q.value = reso; } catch (e) { }
+                    const kc = document.getElementById('valCutoff'); if (kc) kc.textContent = Math.round(cx * 100) + '%';
+                    const kr = document.getElementById('valReso'); if (kr) kr.textContent = Math.round(cy * 100) + '%';
+                    animateVisualizer(0.4 + cx * 0.6); setMusicStatus('🖐️ Cutoff: ' + cutoff + 'Hz  Q: ' + reso);
+                    return;
+                }
+                // 🤏 Pinch - Pluck note
+                if (isStrictPinch(lm)) {
+                    if (now - ms.lastNoteTime > 700) {
+                        ms.lastNoteTime = now; const x = lm[8].x; const notes = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4'];
+                        const idx = Math.min(7, Math.max(0, Math.floor(x * 8))); const note = notes[idx];
+                        try { ms.synths.synth.triggerAttackRelease(note, '8n'); } catch (e) { }
+                        ms.activeNote = note; animateVisualizer(1.0); pulseMusic3D(1.0); setMusicStatus('🤏 Pluck: ' + note);
+                    }
+                    return;
+                }
+                animateVisualizer(0);
+            }
+        }
+        function initSpatial3DScene() {
+            const s = moduleStates.spatial3d;
+            const container = document.getElementById('threeContainer');
+            if (!container || !window.THREE) {
+                if (container) container.innerHTML = '<div style="color:red;padding:20px;">Three.js not loaded.</div>';
+                return;
+            }
+            try {
+                // Wait for display:block to calculate real size
+                const rect = container.getBoundingClientRect();
+                let w = rect.width || container.clientWidth || 600;
+                let h = rect.height || container.clientHeight || 450;
+                if (w === 0) w = 600;
+                if (h === 0) h = 450;
+                // Scene
+                s.scene = new THREE.Scene();
+                // NO BACKGROUND COLOR -> Fall back to CSS background if rendering fails slightly
+                // Camera
+                s.camera3d = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
+                s.camera3d.position.set(0, 1, 5);
+                s.camera3d.lookAt(0, 0, 0);
+                // Renderer (SAFE defaults)
+                s.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+                s.renderer.setSize(w, h);
+                s.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                container.insertBefore(s.renderer.domElement, container.firstChild);
+                // Handle Resize
+                s.resizeHandler = () => {
+                    if (!container || !s.renderer) return;
+                    const r = container.getBoundingClientRect();
+                    if (r.width === 0 || r.height === 0) return;
+                    s.camera3d.aspect = r.width / r.height;
+                    s.camera3d.updateProjectionMatrix();
+                    s.renderer.setSize(r.width, r.height);
+                    if (s.ghostCanvas) { s.ghostCanvas.width = r.width; s.ghostCanvas.height = r.height; }
+                };
+                window.addEventListener('resize', s.resizeHandler);
+                // ==================== NEBULA BACKGROUND ====================
+                const starGeo = new THREE.BufferGeometry();
+                const starCount = 1500;
+                const starPos = new Float32Array(starCount * 3);
+                const starColors = new Float32Array(starCount * 3);
+                for (let i = 0; i < starCount; i++) {
+                    const x = (Math.random() - 0.5) * 100, y = (Math.random() - 0.5) * 100, z = (Math.random() - 0.5) * 100;
+                    starPos[i * 3] = x; starPos[i * 3 + 1] = y; starPos[i * 3 + 2] = z;
+                    const col = new THREE.Color();
+                    col.setHSL(Math.random() * 0.2 + 0.6, 0.8, Math.random() * 0.5 + 0.5); // Purple/Blue hues
+                    starColors[i * 3] = col.r; starColors[i * 3 + 1] = col.g; starColors[i * 3 + 2] = col.b;
+                }
+                starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+                starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+                const starMat = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true });
+                s.starField = new THREE.Points(starGeo, starMat);
+                s.scene.add(s.starField);
+                // ==================== DIORAMA STAND & DOME ====================
+                s.dioramaGroup = new THREE.Group();
+                s.scene.add(s.dioramaGroup);
+                // Base Platform
+                const baseGeo = new THREE.CylinderGeometry(1.5, 1.4, 0.2, 32);
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0x222233, metalness: 0.6, roughness: 0.4, emissive: 0x0055ff, emissiveIntensity: 0.2 });
+                const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                baseMesh.position.y = -0.5;
+                s.dioramaGroup.add(baseMesh);
+                // Grid rings on base
+                const ringGeo = new THREE.TorusGeometry(1.5, 0.02, 16, 64);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff, transparent: true, opacity: 0.8 });
+                const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                ringMesh.rotation.x = Math.PI / 2;
+                ringMesh.position.y = -0.4;
+                s.dioramaGroup.add(ringMesh);
+                // Crystal Energy Dome (SAFE MATERIAL)
+                const domeGeo = new THREE.SphereGeometry(1.4, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+                const domeMat = new THREE.MeshStandardMaterial({ color: 0xff00d4, metalness: 0.2, roughness: 0.2, transparent: true, opacity: 0.1, emissive: 0xff00d4, emissiveIntensity: 0.02, side: THREE.DoubleSide });
+                s.domeMesh = new THREE.Mesh(domeGeo, domeMat);
+                s.domeMesh.position.y = -0.4;
+                s.dioramaGroup.add(s.domeMesh);
+                // Neon Hexagon shield (Wireframe)
+                const shieldGeo = new THREE.IcosahedronGeometry(1.45, 2);
+                const shieldMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff, wireframe: true, transparent: true, opacity: 0.08 });
+                s.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+                s.shieldMesh.position.y = -0.4;
+                s.dioramaGroup.add(s.shieldMesh);
+                // ==================== CHARACTERS ====================
+                // Character 1: Futuristic Explorer
+                const explorerGrp = new THREE.Group();
+                const bodyGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 16);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.3, roughness: 0.7 });
+                const expBody = new THREE.Mesh(bodyGeo, bodyMat);
+                expBody.position.y = 0.4;
+                explorerGrp.add(expBody);
+                const visorGeo = new THREE.BoxGeometry(0.3, 0.15, 0.25);
+                const visorMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.9, roughness: 0.1, emissive: 0x00d2ff, emissiveIntensity: 0.8 });
+                const expVisor = new THREE.Mesh(visorGeo, visorMat);
+                expVisor.position.set(0, 0.65, 0.1);
+                explorerGrp.add(expVisor);
+                explorerGrp.position.set(-0.4, -0.4, 0.2); // Brought slightly forward
+                s.dioramaGroup.add(explorerGrp);
+                // Character 2: Floating Companion Robot
+                const robotGrp = new THREE.Group();
+                const botCoreGeo = new THREE.OctahedronGeometry(0.15, 1);
+                const botMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.8, roughness: 0.2 });
+                const botCore = new THREE.Mesh(botCoreGeo, botMat);
+                robotGrp.add(botCore);
+                const botEyeGeo = new THREE.SphereGeometry(0.06, 16, 16);
+                const botEyeMat = new THREE.MeshBasicMaterial({ color: 0xff00d4 });
+                s.botEye = new THREE.Mesh(botEyeGeo, botEyeMat);
+                s.botEye.position.z = 0.12;
+                robotGrp.add(s.botEye);
+                robotGrp.position.set(0.6, 0.4, 0.3);
+                s.robotGrp = robotGrp;
+                s.dioramaGroup.add(robotGrp);
+                // Character 3: Crystal-Based Creature (SAFE MATERIAL)
+                const crystalGrp = new THREE.Group();
+                const crystalGeo = new THREE.DodecahedronGeometry(0.25, 0);
+                const crystalMat = new THREE.MeshStandardMaterial({ color: 0x00ffaa, metalness: 0.4, roughness: 0.2, transparent: true, opacity: 0.7, emissive: 0x00ffaa, emissiveIntensity: 0.3 });
+                const crystalBody = new THREE.Mesh(crystalGeo, crystalMat);
+                crystalBody.position.y = 0.25;
+                crystalGrp.add(crystalBody);
+                const cSpikeGeo = new THREE.ConeGeometry(0.08, 0.4, 4);
+                const cSpikeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const spike1 = new THREE.Mesh(cSpikeGeo, cSpikeMat);
+                spike1.position.set(0, 0.5, 0);
+                crystalGrp.add(spike1);
+                crystalGrp.position.set(0.2, -0.4, -0.5);
+                s.crystalGrp = crystalGrp;
+                s.dioramaGroup.add(crystalGrp);
+                // Lights
+                const amb = new THREE.AmbientLight(0xffffff, 1.0); // Boosted ambient light for visibility
+                s.scene.add(amb);
+                const p1 = new THREE.PointLight(0xff00d4, 3, 10); // Core intense light
+                p1.position.set(0, 0.5, 0);
+                s.coreLight = p1;
+                s.dioramaGroup.add(p1); // Attached to group so it scales with diorama
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); // Directional light to show character forms
+                dirLight.position.set(2, 4, 3);
+                s.scene.add(dirLight);
+                const p2 = new THREE.PointLight(0x00d2ff, 2, 10);
+                p2.position.set(-2, 2, 2);
+                s.scene.add(p2);
+                // Ghost trail canvas
+                const gc = document.getElementById('ghostTrailCanvas');
+                if (gc) { gc.width = w; gc.height = h; s.ghostCanvas = gc; s.ghostCtx = gc.getContext('2d'); }
+                // Animation loop
+                s.clock = new THREE.Clock();
+                function animate() {
+                    try {
+                        s.animId = requestAnimationFrame(animate);
+                        if (!s.dioramaGroup || !s.renderer) return;
+                        const dt = s.clock.getDelta();
+                        const time = s.clock.getElapsedTime();
+                        // 🖐️ Open Palm: Orbital Rotation
+                        s.dioramaGroup.rotation.x += (s.rotX * 0.01 - s.dioramaGroup.rotation.x) * 0.08;
+                        s.dioramaGroup.rotation.y += (s.rotY * 0.01 - s.dioramaGroup.rotation.y) * 0.08;
+                        // Constant subtle orbital auto-rotation
+                        s.dioramaGroup.rotation.y += 0.002;
+                        s.shieldMesh.rotation.y -= 0.004;
+                        // Character animations
+                        if (s.robotGrp) s.robotGrp.position.y = 0.4 + Math.sin(time * 2) * 0.1;
+                        if (s.crystalGrp) {
+                            s.crystalGrp.rotation.y -= 0.01;
+                            s.crystalGrp.position.y = -0.4 + Math.sin(time * 1.5) * 0.05;
+                        }
+                        // 🤏 Pinch: Elastic Scaling & Neon Glow Pulsing
+                        const tgtScale = Math.max(0.3, Math.min(3, s.scale));
+                        s.dioramaGroup.scale.lerp(new THREE.Vector3(tgtScale, tgtScale, tgtScale), 0.15);
+                        s.domeMesh.material.emissiveIntensity = 0.05 + s.glowIntensity * 0.3;
+                        s.coreLight.intensity = 2 + s.glowIntensity * 3;
+                        if (s.botEye) s.botEye.scale.setScalar(1 + s.glowIntensity * 0.5);
+                        // ✌️ Two-Finger Pan: Move Starfield & Scene position
+                        if (s.starField) {
+                            s.starField.position.x += (s.panX * 2 - s.starField.position.x) * 0.05;
+                            s.starField.position.y += (s.panY * 2 - s.starField.position.y) * 0.05;
+                            s.starField.rotation.y += 0.0005; // slow star rotation
+                        }
+                        s.dioramaGroup.position.x += (s.panX - s.dioramaGroup.position.x) * 0.1;
+                        s.dioramaGroup.position.y += (s.panY - s.dioramaGroup.position.y) * 0.1;
+                        s.renderer.render(s.scene, s.camera3d);
+                        // Fade ghost trail properly without obscuring the background 3D canvas
+                        if (s.ghostCtx) {
+                            s.ghostCtx.globalCompositeOperation = 'destination-out';
+                            s.ghostCtx.fillStyle = 'rgba(0,0,0,0.1)'; // Alpha determines fade speed
+                            s.ghostCtx.fillRect(0, 0, s.ghostCanvas.width, s.ghostCanvas.height);
+                            s.ghostCtx.globalCompositeOperation = 'source-over';
+                        }
+                    } catch (e) {
+                        console.error('Animate Loop Crash:', e);
+                        cancelAnimationFrame(s.animId);
+                    }
+                }
+                animate();
+            } catch (err) {
+                // FALLBACK ERROR UI so user knows it crashed
+                container.innerHTML += `<div style="position:absolute;top:20px;left:20px;z-index:99;color:#ff5555;background:rgba(0,0,0,0.8);padding:20px;border-radius:10px;font-family:monospace;pointer-events:none;"><b>WebGL Failed:</b> ${err.message}</div>`;
+                console.error("Spatial 3D Design WebGL Crash:", err);
+            }
+        }
+        function disposeSpatial3D() {
+            const s = moduleStates.spatial3d;
+            if (s.animId) { cancelAnimationFrame(s.animId); s.animId = null; }
+            if (s.renderer) { s.renderer.dispose(); s.renderer.forceContextLoss(); s.renderer = null; }
+            if (s.scene) { while (s.scene.children.length > 0) { const c = s.scene.children[0]; if (c.geometry) c.geometry.dispose(); if (c.material) { if (Array.isArray(c.material)) c.material.forEach(m => m.dispose()); else c.material.dispose(); } s.scene.remove(c); } s.scene = null; }
+            s.dioramaGroup = null; s.starField = null; s.camera3d = null; s.ghostCanvas = null; s.ghostCtx = null;
+            s.rotX = 0; s.rotY = 0; s.scale = 1; s.panX = 0; s.panY = 0; s.glowIntensity = 1.0; s.lastHandX = null; s.lastHandY = null; s.lastPinchDist = null;
+        }
+        function resetSpatial3D() {
+            const s = moduleStates.spatial3d;
+            s.rotX = 0; s.rotY = 0; s.scale = 1; s.panX = 0; s.panY = 0; s.glowIntensity = 1.0;
+            const container = document.getElementById('threeContainer');
+            if (container) { container.classList.add('snapping'); setTimeout(() => container.classList.remove('snapping'), 700); }
+            updateSpatialStats();
+            showToast('🧲', 'Magnetic Snap — Reset!');
+        }
+        function updateSpatialStats() {
+            const s = moduleStates.spatial3d;
+            const r = document.getElementById('statRot'); if (r) r.textContent = Math.round(s.rotY) + '°';
+            const sc = document.getElementById('statScale'); if (sc) sc.textContent = s.scale.toFixed(2) + 'x';
+            const p = document.getElementById('statPan'); if (p) p.textContent = s.panX.toFixed(1) + ', ' + s.panY.toFixed(1);
+            const g = document.getElementById('statGlow'); if (g) g.textContent = Math.round(s.glowIntensity * 100) + '%';
+        }
+        function drawGhostTrail(x, y, color) {
+            const s = moduleStates.spatial3d;
+            if (!s.ghostCtx || !s.ghostCanvas) return;
+            const cx = x * s.ghostCanvas.width, cy = y * s.ghostCanvas.height;
+            const ctx = s.ghostCtx;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fillStyle = color || 'rgba(255,154,0,0.8)';
+            ctx.shadowColor = color || '#ff9a00';
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        function isTwoFingerSlide(lm) {
+            return lm[8].y < lm[6].y && lm[12].y < lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+        }
+        function processSpatial3D(lm) {
+            const s = moduleStates.spatial3d;
+            const now = Date.now();
+            const hx = lm[9].x, hy = lm[9].y;
+            // Draw ghost trails on fingertips
+            drawGhostTrail(lm[8].x, lm[8].y, 'rgba(255,154,0,0.7)');
+            drawGhostTrail(lm[4].x, lm[4].y, 'rgba(0,210,255,0.5)');
+            // ✊ Fist — Magnetic Snap
+            if (isFist(lm)) {
+                if (now - s.lastFistTime > 1000) {
+                    s.lastFistTime = now;
+                    resetSpatial3D();
+                }
+                s.lastHandX = null; s.lastHandY = null; s.lastPinchDist = null;
+                return;
+            }
+            // ✌️ Two-Finger Slide — Pan
+            if (isTwoFingerSlide(lm)) {
+                if (s.lastHandX !== null) {
+                    const dx = (hx - s.lastHandX) * 6;
+                    const dy = -(hy - s.lastHandY) * 6;
+                    s.panX += dx;
+                    s.panY += dy;
+                    s.panX = Math.max(-3, Math.min(3, s.panX));
+                    s.panY = Math.max(-3, Math.min(3, s.panY));
+                }
+                s.lastHandX = hx; s.lastHandY = hy; s.lastPinchDist = null;
+                drawGhostTrail(lm[12].x, lm[12].y, 'rgba(121,40,202,0.6)');
+                updateSpatialStats();
+                return;
+            }
+            // 🤏 Pinch — Elastic Scale + Morph glow
+            const pinchDist = dist(lm[4], lm[8]);
+            if (pinchDist < 0.12 && !isOpenPalm(lm)) {
+                if (s.lastPinchDist !== null) {
+                    // Increase sensitivity for Elastic Scaling response
+                    const delta = (pinchDist - s.lastPinchDist) * 12;
+                    s.scale += delta;
+                    s.scale = Math.max(0.3, Math.min(3, s.scale));
+                    s.glowIntensity = Math.max(0.1, Math.min(2.0, pinchDist * 15));
+                }
+                s.lastPinchDist = pinchDist;
+                s.lastHandX = null; s.lastHandY = null;
+                drawGhostTrail((lm[4].x + lm[8].x) / 2, (lm[4].y + lm[8].y) / 2, 'rgba(255,0,212,0.9)');
+                updateSpatialStats();
+                return;
+            }
+            // 🖐️ Open Palm — Orbit / Rotate
+            if (isOpenPalm(lm)) {
+                if (s.lastHandX !== null) {
+                    const dx = (hx - s.lastHandX) * 300;
+                    const dy = (hy - s.lastHandY) * 300;
+                    s.rotY += dx;
+                    s.rotX += dy;
+                }
+                s.lastHandX = hx; s.lastHandY = hy; s.lastPinchDist = null;
+                drawGhostTrail(lm[8].x, lm[8].y, 'rgba(255,154,0,0.8)');
+                drawGhostTrail(lm[12].x, lm[12].y, 'rgba(255,154,0,0.6)');
+                drawGhostTrail(lm[16].x, lm[16].y, 'rgba(255,154,0,0.4)');
+                drawGhostTrail(lm[20].x, lm[20].y, 'rgba(255,154,0,0.3)');
+                updateSpatialStats();
+                return;
+            }
+            s.lastHandX = null; s.lastHandY = null; s.lastPinchDist = null;
+        }
+        // ==================== UTILS ====================
+        let toastTimeout;
+        function showToast(icon, text) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastIcon').textContent = icon;
+            document.getElementById('toastText').textContent = text;
+            t.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => t.classList.remove('show'), 2000);
+        }
+        document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModule(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModule(); });
+    </script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body>
+
+</html>
