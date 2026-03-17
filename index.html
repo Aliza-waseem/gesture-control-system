@@ -21,6 +21,10 @@
             --glow-3: rgba(121, 40, 202, 0.4); --glow-4: rgba(255, 154, 0, 0.4);
             --glow-5: rgba(0, 255, 136, 0.4); --glow-6: rgba(168, 85, 247, 0.4);
             --border-color: rgba(255, 255, 255, 0.06);
+            --primary-glow: 0, 210, 255; /* Cyan RGB - transitions to Electric Green on gestures */
+            --glass-bg: rgba(26, 26, 46, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            transition: --primary-glow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         body {
             font-family: 'Poppins', sans-serif; background: var(--bg-primary);
@@ -184,11 +188,15 @@
             max-width: 1400px; margin: 0 auto;
         }
         .card {
-            background: var(--bg-card); border: 1px solid var(--border-color);
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
             border-radius: 20px; padding: 30px;
             cursor: pointer;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative; overflow: hidden;
+            box-shadow: 0 8px 32px 0 rgba(var(--primary-glow), 0.1);
         }
         .card::before {
             content: ''; position: absolute;
@@ -204,7 +212,11 @@
             border-radius: 22px; z-index: -1;
             opacity: 0; transition: opacity 0.4s;
         }
-        .card:hover { transform: translateY(-8px) scale(1.02); border-color: transparent; }
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(var(--primary-glow), 0.4);
+            box-shadow: 0 20px 60px 0 rgba(var(--primary-glow), 0.3);
+        }
         .card:hover::after { opacity: 1; }
         .card:nth-child(1)::after { background: linear-gradient(135deg, var(--accent-1), var(--accent-3)); }
         .card:nth-child(2)::after { background: linear-gradient(135deg, var(--accent-4), #0066ff); }
@@ -329,6 +341,7 @@
         .camera-container video,
         .camera-container canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
         .camera-container canvas { position: absolute; top: 0; left: 0; }
+        .camera-container #ar3dCanvas { position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; }
         .camera-label {
             position: absolute; top: 12px;
             left: 12px; background: rgba(0, 0, 0, 0.6);
@@ -852,6 +865,20 @@
             }
         }
         .three-container.snapping canvas { animation: magneticSnap 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        /* ===== 3D RAYCASTING HOVER EFFECTS ===== */
+        .card.fingertip-hover {
+            transform: translateY(-12px) scale(1.05);
+            border-color: rgba(var(--primary-glow), 0.6);
+            box-shadow: 0 25px 80px 0 rgba(var(--primary-glow), 0.5);
+            filter: brightness(1.15);
+        }
+        .gesture-info-box.fingertip-hover,
+        .output-box.fingertip-hover,
+        .card-btn.fingertip-hover {
+            transform: scale(1.08);
+            box-shadow: 0 15px 40px 0 rgba(var(--primary-glow), 0.4);
+            border-color: rgba(var(--primary-glow), 0.5);
+        }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-primary); }
         ::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 3px; }
@@ -981,6 +1008,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 
     <script>
         // Particles
@@ -1020,6 +1053,18 @@
         let presentationSlides = [];
         let pdfDoc = null;
         let zoomImageSrc = null;
+
+        // ==================== 3D AR SPATIAL MESH SYSTEM ====================
+        let ar3dScene = null, ar3dCamera = null, ar3dRenderer = null, ar3dComposer = null;
+        let handMeshGroup = null, handGeometry = null, handWireframe = null, handMaterial = null;
+        let fingertipMarkers = [];
+        let smoothedLandmarks = [];
+        let pulseTime = 0;
+        let isOpenPalmDetected = false;
+        let starfieldParticles = null;
+        let raycaster = null;
+        let lastDOMUpdateTime = 0;
+        let handCenterPosition = new THREE.Vector3(0, 0, 0);
         // Credit HTML for modals
         const modalCreditHTML = '<div class="modal-credit"><img src="hitms-logo.jpg" alt="HITMS"> Created by Usaid Ahmed</div>';
         const moduleStates = {
@@ -1348,6 +1393,7 @@
                         <div class="camera-container">
                             <video id="moduleVideo" playsinline></video>
                             <canvas id="moduleCanvas"></canvas>
+                            <canvas id="ar3dCanvas"></canvas>
                             <div class="camera-label"><div class="rec-dot"></div>LIVE</div>
                         </div>
                         <div class="hand-landmark-info" id="handInfo">Waiting for hand detection...</div>
@@ -1410,6 +1456,401 @@
             document.getElementById('modalOverlay').classList.remove('active');
             stopCamera();
         }
+
+        // ==================== 3D AR SPATIAL MESH INITIALIZATION ====================
+        // This system upgrades standard 2D MediaPipe hand tracking to a high-fidelity 3D AR Spatial Mesh
+        // Features:
+        // - Three.js scene overlaying video canvas with PerspectiveCamera (FOV: 63° to match webcam)
+        // - Hand wireframe mesh with proper MediaPipe landmark connections
+        // - Holographic material with Electric Blue glow (0x00d2ff) and UnrealBloomPass for soft illumination
+        // - Rotating tetrahedron markers at fingertips (indices: 4, 8, 12, 16, 20)
+        // - LERP smoothing (factor: 0.3) for jitter reduction in landmark positions
+        // - Pulsing animation: opacity & emissive intensity pulse between 0.5 and 1.0
+        // - Gesture-based color transition: Open Palm → Electric Green (0x00ff88), otherwise Electric Blue
+        // - Updates geometry vertices directly (no recreation per frame) for optimal performance
+        function init3DARSystem() {
+            const ar3dCanvas = document.getElementById('ar3dCanvas');
+            if (!ar3dCanvas || !window.THREE) {
+                console.error('3D AR System: Canvas or Three.js not available');
+                return;
+            }
+
+            // Set canvas size to match video
+            ar3dCanvas.width = 640;
+            ar3dCanvas.height = 480;
+
+            // Scene
+            ar3dScene = new THREE.Scene();
+
+            // Camera with FOV matching typical webcam
+            ar3dCamera = new THREE.PerspectiveCamera(63, 640 / 480, 0.1, 1000);
+            ar3dCamera.position.z = 0;
+
+            // Renderer
+            ar3dRenderer = new THREE.WebGLRenderer({
+                canvas: ar3dCanvas,
+                alpha: true,
+                antialias: true
+            });
+            ar3dRenderer.setSize(640, 480);
+            ar3dRenderer.setClearColor(0x000000, 0);
+
+            // Post-processing with UnrealBloomPass
+            if (window.THREE.EffectComposer && window.THREE.RenderPass && window.THREE.UnrealBloomPass) {
+                ar3dComposer = new THREE.EffectComposer(ar3dRenderer);
+                const renderPass = new THREE.RenderPass(ar3dScene, ar3dCamera);
+                ar3dComposer.addPass(renderPass);
+
+                const bloomPass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(640, 480),
+                    1.5,  // strength
+                    0.4,  // radius
+                    0.85  // threshold
+                );
+                ar3dComposer.addPass(bloomPass);
+            }
+
+            // Lighting for the holographic effect
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            ar3dScene.add(ambientLight);
+
+            // Hand mesh connections (MediaPipe HAND_CONNECTIONS)
+            const handConnections = [
+                [0,1],[1,2],[2,3],[3,4],      // Thumb
+                [0,5],[5,6],[6,7],[7,8],       // Index
+                [0,9],[9,10],[10,11],[11,12],  // Middle
+                [0,13],[13,14],[14,15],[15,16],// Ring
+                [0,17],[17,18],[18,19],[19,20],// Pinky
+                [5,9],[9,13],[13,17]           // Palm
+            ];
+
+            // Create hand mesh group
+            handMeshGroup = new THREE.Group();
+            ar3dScene.add(handMeshGroup);
+
+            // Create geometry for hand wireframe
+            const positions = new Float32Array(21 * 3); // 21 landmarks
+            handGeometry = new THREE.BufferGeometry();
+            handGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            // Create line segments for connections
+            const linePositions = [];
+            handConnections.forEach(conn => {
+                linePositions.push(conn[0], conn[1]);
+            });
+            handGeometry.setIndex(linePositions);
+
+            // Holographic material - Electric Blue
+            handMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00d2ff,
+                transparent: true,
+                opacity: 0.8,
+                emissive: 0x00d2ff,
+                emissiveIntensity: 1.0
+            });
+
+            // Create wireframe
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0x00d2ff,
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 2
+            });
+            handWireframe = new THREE.LineSegments(handGeometry, lineMaterial);
+            handMeshGroup.add(handWireframe);
+
+            // Create fingertip markers (Tetrahedrons for tips: 4, 8, 12, 16, 20)
+            const fingertips = [4, 8, 12, 16, 20];
+            fingertips.forEach(tipIndex => {
+                const tetraGeometry = new THREE.TetrahedronGeometry(0.015, 0);
+                const tetraMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00d2ff,
+                    transparent: true,
+                    opacity: 0.9,
+                    emissive: 0x00d2ff,
+                    emissiveIntensity: 1.5
+                });
+                const tetraMesh = new THREE.Mesh(tetraGeometry, tetraMaterial);
+                fingertipMarkers.push({ index: tipIndex, mesh: tetraMesh });
+                handMeshGroup.add(tetraMesh);
+            });
+
+            // Initialize smoothed landmarks array
+            for (let i = 0; i < 21; i++) {
+                smoothedLandmarks.push({ x: 0, y: 0, z: 0 });
+            }
+
+            // ==================== INTERACTIVE STARFIELD / PARTICLE SYSTEM ====================
+            const starCount = 2000;
+            const starGeometry = new THREE.BufferGeometry();
+            const starPositions = new Float32Array(starCount * 3);
+            const starVelocities = new Float32Array(starCount * 3);
+
+            for (let i = 0; i < starCount; i++) {
+                starPositions[i * 3] = (Math.random() - 0.5) * 10;
+                starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+                starPositions[i * 3 + 2] = (Math.random() - 0.5) * 5 - 2;
+
+                // Store initial positions for parallax
+                starVelocities[i * 3] = starPositions[i * 3];
+                starVelocities[i * 3 + 1] = starPositions[i * 3 + 1];
+                starVelocities[i * 3 + 2] = starPositions[i * 3 + 2];
+            }
+
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            starGeometry.setAttribute('velocity', new THREE.BufferAttribute(starVelocities, 3));
+
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0x00d2ff,
+                size: 0.02,
+                transparent: true,
+                opacity: 0.6,
+                sizeAttenuation: true
+            });
+
+            starfieldParticles = new THREE.Points(starGeometry, starMaterial);
+            ar3dScene.add(starfieldParticles);
+
+            // ==================== RAYCASTER FOR UI INTERACTION ====================
+            raycaster = new THREE.Raycaster();
+            raycaster.params.Points.threshold = 0.05;
+
+            console.log('3D AR Spatial Mesh System initialized');
+        }
+
+        function dispose3DARSystem() {
+            if (ar3dRenderer) {
+                ar3dRenderer.dispose();
+                ar3dRenderer = null;
+            }
+            if (ar3dComposer) {
+                ar3dComposer = null;
+            }
+            ar3dScene = null;
+            ar3dCamera = null;
+            handMeshGroup = null;
+            handGeometry = null;
+            handWireframe = null;
+            handMaterial = null;
+            fingertipMarkers = [];
+            smoothedLandmarks = [];
+            pulseTime = 0;
+            starfieldParticles = null;
+            raycaster = null;
+            handCenterPosition = new THREE.Vector3(0, 0, 0);
+        }
+
+        function update3DHandMesh(landmarks) {
+            if (!handGeometry || !handWireframe || !ar3dScene) return;
+
+            // LERP smoothing factor - Ultra-smooth 0.1 for 60FPS
+            const lerpFactor = 0.1;
+
+            // Update landmarks with LERP smoothing
+            landmarks.forEach((landmark, i) => {
+                // Convert normalized coordinates to 3D space
+                // x: -1 to 1, y: -1 to 1, z: -0.5 to 0.5 (approximate depth)
+                const targetX = (landmark.x - 0.5) * 2;
+                const targetY = -(landmark.y - 0.5) * 2;  // Flip Y
+                const targetZ = landmark.z * -1;  // Use z coordinate for depth
+
+                // LERP smoothing
+                smoothedLandmarks[i].x += (targetX - smoothedLandmarks[i].x) * lerpFactor;
+                smoothedLandmarks[i].y += (targetY - smoothedLandmarks[i].y) * lerpFactor;
+                smoothedLandmarks[i].z += (targetZ - smoothedLandmarks[i].z) * lerpFactor;
+            });
+
+            // Update geometry vertices
+            const positions = handGeometry.attributes.position.array;
+            smoothedLandmarks.forEach((lm, i) => {
+                positions[i * 3] = lm.x;
+                positions[i * 3 + 1] = lm.y;
+                positions[i * 3 + 2] = lm.z;
+            });
+            handGeometry.attributes.position.needsUpdate = true;
+
+            // Update fingertip markers
+            fingertipMarkers.forEach(marker => {
+                const lm = smoothedLandmarks[marker.index];
+                marker.mesh.position.set(lm.x, lm.y, lm.z);
+                // Rotate tetrahedron
+                marker.mesh.rotation.y += 0.05;
+                marker.mesh.rotation.x += 0.03;
+            });
+
+            // Pulsing animation
+            pulseTime += 0.05;
+            const pulseValue = 0.5 + Math.sin(pulseTime) * 0.5; // 0.0 to 1.0
+
+            // Update opacity and emissive intensity
+            const pulsedOpacity = 0.5 + pulseValue * 0.5; // 0.5 to 1.0
+            const pulsedEmissive = 0.5 + pulseValue * 0.5; // 0.5 to 1.0
+
+            if (handWireframe.material) {
+                handWireframe.material.opacity = pulsedOpacity;
+            }
+
+            fingertipMarkers.forEach(marker => {
+                if (marker.mesh.material) {
+                    marker.mesh.material.opacity = pulsedOpacity;
+                    marker.mesh.material.emissiveIntensity = pulsedEmissive * 1.5;
+                }
+            });
+
+            // Gesture-based color transition (Open Palm -> Electric Green)
+            const targetColor = isOpenPalmDetected ? 0x00ff88 : 0x00d2ff; // Electric Green : Electric Blue
+
+            if (handWireframe.material) {
+                const currentColor = handWireframe.material.color;
+                const targetColorObj = new THREE.Color(targetColor);
+                currentColor.lerp(targetColorObj, 0.1);
+                handWireframe.material.color = currentColor;
+                handWireframe.material.emissive = currentColor;
+            }
+
+            fingertipMarkers.forEach(marker => {
+                if (marker.mesh.material) {
+                    const currentColor = marker.mesh.material.color;
+                    const targetColorObj = new THREE.Color(targetColor);
+                    currentColor.lerp(targetColorObj, 0.1);
+                    marker.mesh.material.color = currentColor;
+                    marker.mesh.material.emissive = currentColor;
+                }
+            });
+
+            // ==================== INTERACTIVE STARFIELD PARALLAX ====================
+            // Calculate hand center for parallax movement
+            if (smoothedLandmarks.length > 0) {
+                handCenterPosition.set(
+                    smoothedLandmarks[9].x, // Middle finger base
+                    smoothedLandmarks[9].y,
+                    smoothedLandmarks[9].z
+                );
+            }
+
+            // Update starfield with parallax effect
+            if (starfieldParticles) {
+                const positions = starfieldParticles.geometry.attributes.position.array;
+                const velocities = starfieldParticles.geometry.attributes.velocity.array;
+
+                for (let i = 0; i < positions.length; i += 3) {
+                    const parallaxX = handCenterPosition.x * 0.3;
+                    const parallaxY = handCenterPosition.y * 0.3;
+
+                    positions[i] = velocities[i] + parallaxX;
+                    positions[i + 1] = velocities[i + 1] + parallaxY;
+                }
+
+                starfieldParticles.geometry.attributes.position.needsUpdate = true;
+
+                // Color transition for starfield
+                const starTargetColor = isOpenPalmDetected ? 0x00ff88 : 0x00d2ff;
+                const currentStarColor = starfieldParticles.material.color;
+                const targetStarColorObj = new THREE.Color(starTargetColor);
+                currentStarColor.lerp(targetStarColorObj, 0.05);
+            }
+
+            handMeshGroup.visible = true;
+        }
+
+        function animate3DAR() {
+            if (!ar3dScene || !ar3dCamera || !ar3dRenderer) return;
+
+            // Perform UI raycasting for fingertip hover detection
+            if (handMeshGroup && handMeshGroup.visible) {
+                performUIRaycasting();
+            }
+
+            // Render scene
+            if (ar3dComposer) {
+                ar3dComposer.render();
+            } else {
+                ar3dRenderer.render(ar3dScene, ar3dCamera);
+            }
+
+            requestAnimationFrame(animate3DAR);
+        }
+
+        // ==================== 3D RAYCASTING FOR UI INTERACTION ====================
+        function performUIRaycasting() {
+            if (!raycaster || fingertipMarkers.length === 0) return;
+
+            // Debounce DOM updates to 60fps
+            const now = Date.now();
+            if (now - lastDOMUpdateTime < 16) return; // ~60fps
+            lastDOMUpdateTime = now;
+
+            // Get all interactable UI elements
+            const cards = document.querySelectorAll('.card');
+            const boxes = document.querySelectorAll('.gesture-info-box, .output-box');
+            const buttons = document.querySelectorAll('.card-btn');
+
+            const allElements = [...cards, ...boxes, ...buttons];
+
+            // Check each fingertip for proximity to UI elements
+            let anyHover = false;
+
+            fingertipMarkers.forEach(marker => {
+                const tipPos = marker.mesh.position;
+
+                // Convert 3D position to normalized device coordinates
+                const vector = tipPos.clone();
+                vector.project(ar3dCamera);
+
+                // Check if fingertip is in valid screen space
+                if (vector.z > 1 || vector.z < -1) return;
+
+                // Convert to screen coordinates (considering canvas position)
+                const canvas = ar3dRenderer.domElement;
+                const rect = canvas.getBoundingClientRect();
+                const screenX = (vector.x + 1) * rect.width / 2 + rect.left;
+                const screenY = (-vector.y + 1) * rect.height / 2 + rect.top;
+
+                // Check proximity to UI elements
+                allElements.forEach(elem => {
+                    const elemRect = elem.getBoundingClientRect();
+
+                    // Calculate if fingertip is near element (with buffer zone)
+                    const buffer = 50; // pixels
+                    const isNear = screenX >= (elemRect.left - buffer) &&
+                                   screenX <= (elemRect.right + buffer) &&
+                                   screenY >= (elemRect.top - buffer) &&
+                                   screenY <= (elemRect.bottom + buffer);
+
+                    if (isNear && tipPos.z > -0.2) { // Z-depth check for proximity
+                        elem.classList.add('fingertip-hover');
+                        anyHover = true;
+                    } else {
+                        elem.classList.remove('fingertip-hover');
+                    }
+                });
+            });
+
+            // Global gesture feedback - color transition
+            updatePrimaryGlow();
+        }
+
+        function updatePrimaryGlow() {
+            const root = document.documentElement;
+            const currentGlow = getComputedStyle(root).getPropertyValue('--primary-glow').trim();
+
+            // Target: Cyan (0, 210, 255) or Electric Green (0, 255, 136)
+            const targetGlow = isOpenPalmDetected ? '0, 255, 136' : '0, 210, 255';
+
+            if (currentGlow !== targetGlow) {
+                // Parse current RGB values
+                const current = currentGlow.split(',').map(v => parseFloat(v.trim()));
+                const target = targetGlow.split(',').map(v => parseFloat(v.trim()));
+
+                // LERP color transition
+                const newR = current[0] + (target[0] - current[0]) * 0.05;
+                const newG = current[1] + (target[1] - current[1]) * 0.05;
+                const newB = current[2] + (target[2] - current[2]) * 0.05;
+
+                root.style.setProperty('--primary-glow', `${newR}, ${newG}, ${newB}`);
+            }
+        }
+
         // ==================== CAMERA ====================
         function startCamera() {
             try {
@@ -1453,6 +1894,11 @@
                         document.getElementById('gestureStatus').classList.add('active');
                         canvasElement.width = 640;
                         canvasElement.height = 480;
+
+                        // Initialize 3D AR System
+                        init3DARSystem();
+                        animate3DAR();
+
                         showToast('✅', 'Camera and hand detection ready');
                     })
                     .catch((error) => {
@@ -1471,6 +1917,10 @@
         }
         function stopCamera() {
             if (camera) { camera.stop(); camera = null; }
+
+            // Dispose 3D AR System
+            dispose3DARSystem();
+
             document.getElementById('cameraStatus').classList.remove('active');
             document.getElementById('modelStatus').classList.remove('active');
             document.getElementById('gestureStatus').classList.remove('active');
@@ -1493,12 +1943,25 @@
                     drawConnectors(canvasCtx, lm, HAND_CONNECTIONS, { color: 'rgba(0,210,255,0.4)', lineWidth: 2 });
                     drawLandmarks(canvasCtx, lm, { color: '#e94560', lineWidth: 1, radius: 3 });
                 }
+
+                // Update 3D AR Spatial Mesh with first hand
+                const firstHand = results.multiHandLandmarks[0];
+                update3DHandMesh(firstHand);
+
+                // Detect open palm gesture for color transition
+                isOpenPalmDetected = isOpenPalm(firstHand);
+
                 const hi = document.getElementById('handInfo');
                 if (hi) hi.textContent = `✋ ${results.multiHandLandmarks.length} hand(s) detected`;
                 processGesture(results.multiHandLandmarks, results.multiHandedness);
             } else {
                 const hi = document.getElementById('handInfo');
                 if (hi) hi.textContent = 'Waiting for hand detection...';
+
+                // Hide hand mesh when no hands detected
+                if (handMeshGroup) {
+                    handMeshGroup.visible = false;
+                }
             }
             canvasCtx.restore();
         }
