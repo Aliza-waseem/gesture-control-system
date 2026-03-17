@@ -984,6 +984,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
@@ -1427,6 +1428,16 @@
         }
 
         // ==================== 3D AR SPATIAL MESH INITIALIZATION ====================
+        // This system upgrades standard 2D MediaPipe hand tracking to a high-fidelity 3D AR Spatial Mesh
+        // Features:
+        // - Three.js scene overlaying video canvas with PerspectiveCamera (FOV: 63° to match webcam)
+        // - Hand wireframe mesh with proper MediaPipe landmark connections
+        // - Holographic material with Electric Blue glow (0x00d2ff) and UnrealBloomPass for soft illumination
+        // - Rotating tetrahedron markers at fingertips (indices: 4, 8, 12, 16, 20)
+        // - LERP smoothing (factor: 0.3) for jitter reduction in landmark positions
+        // - Pulsing animation: opacity & emissive intensity pulse between 0.5 and 1.0
+        // - Gesture-based color transition: Open Palm → Electric Green (0x00ff88), otherwise Electric Blue
+        // - Updates geometry vertices directly (no recreation per frame) for optimal performance
         function init3DARSystem() {
             const ar3dCanvas = document.getElementById('ar3dCanvas');
             if (!ar3dCanvas || !window.THREE) {
